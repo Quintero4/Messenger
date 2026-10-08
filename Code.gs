@@ -5,17 +5,24 @@
  *   - Ejecutar como: "Usuario que accede a la aplicación web"
  *   - Quién tiene acceso: "Cualquier usuario de tu dominio" (Workspace)
  * El HTML debe llamarse exactamente "Index" (Index.html).
+ *
+ * ENTREGA INSTANTÁNEA: cada mensaje se deposita primero en un "buzón" en caché del receptor
+ * (la petición en espera del receptor lo recoge en ~150 ms) y después se guarda en la hoja.
+ * La hoja es el historial permanente; la caché es el canal rápido.
  */
 const APP = {
   USERS_SHEET: 'Usuarios',
   MESSAGES_SHEET: 'Mensajes',
-  ONLINE_MS: 45000,   // sin actividad durante este tiempo => desconectado
-  TOUCH_MS: 15000,    // como máximo se escribe la actividad cada 15 s por usuario
-  MAX_ROWS: 500,      // filas recientes de Mensajes que se leen en cada consulta
+  ONLINE_MS: 45000,     // sin actividad durante este tiempo => desconectado
+  TOUCH_MS: 15000,      // como máximo se escribe la actividad cada 15 s por usuario
+  LONGPOLL_MS: 15000,   // tiempo máximo que el servidor mantiene una petición esperando novedades
+  POLL_SLEEP_MS: 150,   // cada cuánto mira la caché mientras espera (menor = más inmediato)
+  MAILBOX_MS: 1800000,  // los mensajes del buzón rápido se conservan 30 min
+  MAX_ROWS: 500,        // filas recientes de Mensajes que se leen en cada consulta
   MAX_LEN: 1000,
-  NUDGE_MS: 10000,    // tiempo mínimo entre zumbidos del mismo usuario
+  NUDGE_MS: 10000,      // tiempo mínimo entre zumbidos del mismo usuario
   STATES: ['disponible', 'llamada', 'cafe', 'desconectado'],
-  SPREADSHEET_ID: ''  // Vacío si el script está vinculado a la hoja; si no, pega aquí el ID.
+  SPREADSHEET_ID: ''    // Vacío si el script está vinculado a la hoja; si no, pega aquí el ID.
 };
 
 /* ---------- Utilidades ---------- */
@@ -35,6 +42,10 @@ function sheet_(name) {
 }
 
 const norm_ = v => String(v || '').trim().toLowerCase();
+
+function bumpPresence_() {
+  CacheService.getScriptCache().put('presence', String(Date.now()), 21600);
+}
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('Index')
@@ -70,7 +81,7 @@ function setupDatabase_() {
   }
 }
 
-/** Migra hojas creadas con la versión anterior (añade columnas "estado" y "tipo"). */
+/** Migra hojas creadas con versiones anteriores (columnas "estado" y "tipo"). */
 function ensureSchema_() {
   const cache = CacheService.getScriptCache();
   if (cache.get('schema_ok')) return;
@@ -108,7 +119,21 @@ function findUserRow_(sheet, email) {
   return -1;
 }
 
-/** Registra actividad (limitado por caché para no escribir en la hoja cada pocos segundos). */
+/** ¿Existe el usuario? Usa caché para no leer la hoja en cada envío. */
+function knownUser_(email) {
+  const cache = CacheService.getScriptCache();
+  try {
+    const raw = cache.get('known_users');
+    if (raw && JSON.parse(raw).indexOf(email) >= 0) return true;
+  } catch (_) {}
+  const sheet = sheet_(APP.USERS_SHEET);
+  const last = sheet.getLastRow();
+  const emails = last >= 2 ? sheet.getRange(2, 1, last - 1, 1).getValues().map(r => norm_(r[0])) : [];
+  cache.put('known_users', JSON.stringify(emails), 300);
+  return emails.indexOf(email) >= 0;
+}
+
+/** Registra actividad (limitado por caché). Avisa a los demás si el usuario pasa de desconectado a conectado. */
 function touchUser_(user) {
   const cache = CacheService.getScriptCache();
   const key = 'touch_' + user.email;
@@ -122,8 +147,12 @@ function touchUser_(user) {
     const row = findUserRow_(sheet, user.email);
     if (row === -1) {
       sheet.appendRow([user.email, user.nombre, new Date(), 'disponible']);
+      cache.remove('known_users');
+      bumpPresence_();
     } else {
-      sheet.getRange(row, 2, 1, 2).setValues([[user.nombre, new Date()]]); // no toca la columna "estado"
+      const prev = new Date(sheet.getRange(row, 3).getValue()).getTime();
+      sheet.getRange(row, 2, 1, 2).setValues([[user.nombre, new Date()]]);
+      if (!(prev >= Date.now() - APP.ONLINE_MS)) bumpPresence_();
     }
     cache.put(key, '1', Math.max(1, Math.floor(APP.TOUCH_MS / 1000)));
   } finally {
@@ -149,7 +178,7 @@ function getContacts_(me) {
     .map(row => {
       const active = new Date(row[2]).getTime() >= cutoff;
       const saved = APP.STATES.indexOf(row[3]) >= 0 ? row[3] : 'disponible';
-      const estado = active ? saved : 'desconectado';   // sin actividad => desconectado
+      const estado = active ? saved : 'desconectado';
       return {
         email: norm_(row[0]),
         nombre: String(row[1] || row[0]),
@@ -187,6 +216,30 @@ function toMessage_(row, rowNumber) {
   };
 }
 
+/* ---------- Buzón rápido en caché ---------- */
+
+function mailboxRead_(cache, email) {
+  try { return JSON.parse(cache.get('mbox_' + email) || '[]'); } catch (_) { return []; }
+}
+
+/** Deposita el mensaje en el buzón del receptor y "despierta" su petición en espera. */
+function pushMailbox_(to, item) {
+  const cache = CacheService.getScriptCache();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const cutoff = Date.now() - APP.MAILBOX_MS;
+    let arr = mailboxRead_(cache, to).filter(m => m.id !== item.id && new Date(m.fecha).getTime() > cutoff);
+    const prev = arr.length ? Number(arr[arr.length - 1].seq) : 0;
+    item.seq = Math.max(Date.now() * 1000 + Math.floor(Math.random() * 1000), prev + 1);
+    arr.push(item);
+    let json = JSON.stringify(arr);
+    while ((arr.length > 40 || json.length > 30000) && arr.length > 1) { arr.shift(); json = JSON.stringify(arr); }
+    cache.put('mbox_' + to, json, 21600);
+    cache.put('seq_' + to, String(item.seq), 21600);
+    // Verificación (sin bloqueo): si otro envío simultáneo pisó el buzón, se reintenta
+    if (mailboxRead_(cache, to).some(m => m.id === item.id)) return;
+  }
+}
+
 /* ---------- API pública (google.script.run) ---------- */
 
 function bootstrap() {
@@ -199,41 +252,85 @@ function bootstrap() {
 }
 
 /**
- * Una sola llamada por ciclo: actividad + contactos + mensajes nuevos + avisos entrantes.
+ * Sincronización con long-polling + buzón rápido.
+ * - Camino rápido: si mientras esperaba llegó un mensaje, responde SOLO con él (sin leer la hoja).
+ * - Camino completo: carga inicial, cambios de presencia o fin del tiempo de espera
+ *   (contactos + historial desde la hoja; actúa además como red de seguridad).
+ *
  * @param {string} contactEmail contacto abierto ('' si ninguno)
- * @param {number} afterRow     última fila ya recibida para ese chat (0 = carga inicial)
+ * @param {number} afterRow     última fila de la hoja ya recibida para ese chat
+ * @param {Object} opts { wait, seq, itemSeq, pres, passive, loop, first }
  */
-function sync(contactEmail, afterRow) {
+function sync(contactEmail, afterRow, opts) {
+  opts = opts || {};
   const me = getIdentity_();
-  touchUser_(me);
+  const cache = CacheService.getScriptCache();
+  const kSeq = 'seq_' + me.email, kTouch = 'touch_' + me.email, kLoop = 'loop_' + me.email;
+  const passive = !!opts.passive;
+  const loop = String(opts.loop || '');
+  const clientSeq = String(opts.seq || '0');
+  const clientPres = String(opts.pres || '');
+  const itemSeq = Number(opts.itemSeq) || 0;
+  const waitMs = Math.min(Math.max(Number(opts.wait) || 0, 0), APP.LONGPOLL_MS);
+
+  if (loop && opts.first) cache.put(kLoop, loop, 21600);   // este bucle sustituye a los anteriores
+  if (!passive) touchUser_(me);
+
+  const snapshot = () => {
+    const g = cache.getAll([kSeq, 'presence', kTouch, kLoop]);
+    return {
+      seq: g[kSeq] || '0',
+      pres: g.presence || '',
+      touch: !!g[kTouch],
+      stale: !!loop && !!g[kLoop] && g[kLoop] !== loop
+    };
+  };
+  const changed = s => s.seq !== clientSeq || s.pres !== clientPres;
+
+  let st = snapshot();
+  if (waitMs > 0 && !changed(st) && !st.stale) {
+    const end = Date.now() + waitMs;
+    while (Date.now() < end) {
+      Utilities.sleep(APP.POLL_SLEEP_MS);
+      st = snapshot();
+      if (st.stale || changed(st)) break;
+      if (!passive && !st.touch) touchUser_(me);
+    }
+  }
+
+  // Mensajes nuevos del buzón rápido
+  let items = [], maxSeq = itemSeq;
+  if (st.seq !== clientSeq || itemSeq === 0) {
+    const all = mailboxRead_(cache, me.email);
+    all.forEach(m => { if (Number(m.seq) > maxSeq) maxSeq = Number(m.seq); });
+    items = all.filter(m => Number(m.seq) > itemSeq);
+  }
+
+  // Camino rápido: solo llegaron mensajes
+  if (waitMs > 0 && items.length && st.pres === clientPres && !st.stale) {
+    return { full: false, items: items, seq: st.seq, itemSeq: maxSeq, pres: st.pres, stale: false };
+  }
+
+  // Camino completo
   const contactos = getContacts_(me);
   const contact = norm_(contactEmail);
   const after = Number(afterRow) || 0;
-
-  const data = readMessages_(after > 0 ? after + 1 : 2);
-  const incoming = {};   // email -> última fila que me ha enviado (cualquier tipo)
-  const nudges = {};     // email -> última fila de zumbido que me ha enviado
   const mensajes = [];
-
-  const scan = after > 0 ? readMessages_(Math.max(2, data.lastRow - 100)) : data;
-  scan.values.forEach((row, i) => {
-    if (norm_(row[4]) === me.email) {
-      const sender = norm_(row[2]), n = scan.start + i;
-      incoming[sender] = n;
-      if (row[6] === 'zumbido') nudges[sender] = n;
-    }
-  });
-
-  data.values.forEach((row, i) => {
-    const n = data.start + i;
-    if (n <= after || !contact) return;
-    const s = norm_(row[2]), r = norm_(row[4]);
-    if ((s === me.email && r === contact) || (s === contact && r === me.email)) {
-      mensajes.push(toMessage_(row, n));
-    }
-  });
-
-  return { contactos: contactos, mensajes: mensajes, incoming: incoming, nudges: nudges, ultimaFila: data.lastRow };
+  if (contact) {
+    const data = readMessages_(after > 0 ? after + 1 : 2);
+    data.values.forEach((row, i) => {
+      const n = data.start + i;
+      if (n <= after) return;
+      const s = norm_(row[2]), r = norm_(row[4]);
+      if ((s === me.email && r === contact) || (s === contact && r === me.email)) {
+        mensajes.push(toMessage_(row, n));
+      }
+    });
+  }
+  return {
+    full: true, contactos: contactos, mensajes: mensajes, items: items,
+    seq: st.seq, itemSeq: maxSeq, pres: st.pres, stale: st.stale
+  };
 }
 
 function getConversation(contactEmail, afterRow) {
@@ -260,10 +357,11 @@ function setStatus(estado) {
   } finally {
     lock.releaseLock();
   }
+  bumpPresence_();
   return estado;
 }
 
-/** El cliente la llama al salir de la página o cuando el equipo se bloquea / la pestaña queda oculta. */
+/** El cliente la llama al quedar ausente o al cerrar la página. */
 function goOffline() {
   const me = getIdentity_();
   const lock = LockService.getScriptLock();
@@ -276,38 +374,43 @@ function goOffline() {
   } finally {
     lock.releaseLock();
   }
+  bumpPresence_();
+}
+
+/** Guarda el mensaje en la hoja (historial permanente). */
+function persist_(item) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = sheet_(APP.MESSAGES_SHEET);
+    const row = sheet.getLastRow() + 1;
+    const range = sheet.getRange(row, 1, 1, 7);
+    range.setNumberFormats([['@', 'yyyy-mm-dd hh:mm:ss.000', '@', '@', '@', '@', '@']]);
+    range.setValues([[item.id, new Date(item.fecha), item.emisorEmail, item.emisorNombre, item.receptorEmail, item.mensaje, item.tipo]]);
+    item.fila = row;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function append_(me, to, text, tipo) {
   if (!to) throw new Error('Selecciona un contacto.');
   if (to === me.email) throw new Error('No puedes enviarte mensajes a ti mismo.');
-  if (!getContacts_(me).some(c => c.email === to)) throw new Error('El contacto no existe.');
+  if (!knownUser_(to)) throw new Error('El contacto no existe.');
   touchUser_(me);
-
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
-    const now = new Date();
-    const sheet = sheet_(APP.MESSAGES_SHEET);
-    const rowNumber = sheet.getLastRow() + 1;
-    const item = {
-      fila: rowNumber,
-      id: Utilities.getUuid(),
-      fecha: now.toISOString(),
-      emisorEmail: me.email,
-      emisorNombre: me.nombre,
-      receptorEmail: to,
-      mensaje: text,
-      tipo: tipo
-    };
-    const range = sheet.getRange(rowNumber, 1, 1, 7);
-    range.setNumberFormats([['@', 'yyyy-mm-dd hh:mm:ss.000', '@', '@', '@', '@', '@']]);
-    range.setValues([[item.id, now, item.emisorEmail, item.emisorNombre, item.receptorEmail, item.mensaje, item.tipo]]);
-    SpreadsheetApp.flush();
-    return item;
-  } finally {
-    lock.releaseLock();
-  }
+  const item = {
+    fila: 0,
+    id: Utilities.getUuid(),
+    fecha: new Date().toISOString(),
+    emisorEmail: me.email,
+    emisorNombre: me.nombre,
+    receptorEmail: to,
+    mensaje: text,
+    tipo: tipo
+  };
+  pushMailbox_(to, item);   // 1) entrega inmediata al receptor
+  persist_(item);           // 2) guardado en la hoja
+  return item;
 }
 
 function sendMessage(contactEmail, message) {
@@ -323,7 +426,6 @@ function sendNudge(contactEmail) {
   const cache = CacheService.getScriptCache();
   const key = 'nudge_' + me.email;
   if (cache.get(key)) throw new Error('Espera unos segundos antes de enviar otro zumbido.');
-  const item = append_(me, norm_(contactEmail), '¡Zumbido!', 'zumbido');
   cache.put(key, '1', Math.max(1, Math.ceil(APP.NUDGE_MS / 1000)));
-  return item;
+  return append_(me, norm_(contactEmail), '¡Zumbido!', 'zumbido');
 }
