@@ -9,25 +9,34 @@
     html,body{height:100%;margin:0}
     body{font:13px Tahoma,Verdana,sans-serif;background:radial-gradient(circle at 30% 10%,#fff,#dbeeff 38%,#91bbe4);color:#123;overflow:hidden}
     .app{width:min(1050px,96vw);height:min(760px,94vh);margin:3vh auto;border:1px solid #174b86;border-radius:14px;overflow:hidden;box-shadow:0 18px 55px #1c4e8066;background:#f7fbff;display:flex;flex-direction:column}
+    .app.shake{animation:shake .75s linear}
+    @keyframes shake{
+      0%,100%{transform:translate(0,0)}
+      8%{transform:translate(-14px,-6px)}16%{transform:translate(14px,6px)}24%{transform:translate(-12px,5px)}
+      32%{transform:translate(12px,-5px)}40%{transform:translate(-10px,-4px)}48%{transform:translate(10px,4px)}
+      56%{transform:translate(-8px,3px)}64%{transform:translate(8px,-3px)}72%{transform:translate(-5px,2px)}
+      80%{transform:translate(5px,-2px)}90%{transform:translate(-2px,1px)}
+    }
     .title{flex:0 0 48px;padding:7px 12px;color:#fff;background:linear-gradient(#4aa2ed,#0a61b8 55%,#06498e);display:flex;align-items:center;gap:10px}
     .orb{width:30px;height:30px;border-radius:50%;background:linear-gradient(145deg,#b9ff91,#49a61e);border:2px solid #fff}
     .layout{flex:1;min-height:0;display:grid;grid-template-columns:240px minmax(0,1fr)}
     .sidebar{min-height:0;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #6c9fd5;background:linear-gradient(90deg,#eef7ff,#d9ecff)}
     .profile{flex:0 0 auto;padding:14px 12px;border-bottom:1px solid #94b8dd}
     .avatar{width:48px;height:48px;border:3px solid #fff;outline:1px solid #85a9cd;border-radius:8px;background:linear-gradient(135deg,#94cfff,#2c6cb3);display:grid;place-items:center;color:#fff;font-size:25px;float:left;margin-right:10px}
-    .online{color:#368509}
     .small{font-size:11px;color:#59728c}
+    .status-select{width:100%;margin-top:10px;padding:5px 6px;border:1px solid #7ea6cf;border-radius:6px;background:linear-gradient(#fff,#e3effa);font:13px Tahoma,Verdana,sans-serif;color:#123;cursor:pointer}
     .contacts-title{flex:0 0 auto;padding:12px 10px 6px;font-weight:bold;color:#174b86}
     .contacts{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;padding-bottom:8px}
     .contact{width:100%;padding:10px;border:0;border-top:1px solid transparent;border-bottom:1px solid transparent;background:transparent;display:flex;gap:8px;align-items:center;text-align:left;font:13px Tahoma,Verdana,sans-serif;color:#123;cursor:pointer}
-    .contact span.name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .contact .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .contact .st{font-size:11px;color:#6b8299}
     .contact:hover,.contact.active{background:#fff;border-color:#9fc2e5}
     .contact:focus-visible{outline:2px solid #1266c9;outline-offset:-2px}
     .contact.unread .name{font-weight:bold}
     .badge{flex:0 0 auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e03a1e;color:#fff;font-size:11px;font-weight:bold;display:grid;place-items:center}
     .dot{flex:0 0 11px;width:11px;height:11px;border-radius:50%;background:#aaa;border:1px solid #fff;box-shadow:0 0 0 1px #777}
-    .dot.on{background:#59ca25}
-    .chat{min-width:0;min-height:0;display:grid;grid-template-rows:66px minmax(0,1fr) 96px;overflow:hidden;background:#fff}
+    .dot.on{background:#59ca25}.dot.llamada{background:#e5372b}.dot.cafe{background:#f0a020}
+    .chat{position:relative;min-width:0;min-height:0;display:grid;grid-template-rows:66px minmax(0,1fr) 128px;overflow:hidden;background:#fff}
     .chat-head{padding:10px 14px;background:linear-gradient(#fff,#e6f2fc);border-bottom:1px solid #8cb4dd}
     .chat-head b{font-size:16px;color:#174b86}
     .messages{min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;overscroll-behavior:contain;padding:15px;background:linear-gradient(#fff,#f2f8fe)}
@@ -35,29 +44,50 @@
     .msg{max-width:76%;margin-bottom:12px;overflow-wrap:anywhere}
     .msg.mine{margin-left:auto;text-align:right}
     .meta{font-size:11px;color:#577795;margin-bottom:3px}
-    .bubble{display:inline-block;text-align:left;padding:9px 12px;border:1px solid #8eb8de;border-radius:5px 13px 13px;background:linear-gradient(#fff,#e8f3fc)}
+    .bubble{display:inline-block;text-align:left;padding:9px 12px;border:1px solid #8eb8de;border-radius:5px 13px 13px;background:linear-gradient(#fff,#e8f3fc);font-size:14px}
     .mine .bubble{border-radius:13px 5px 13px 13px;background:linear-gradient(#f5ffe9,#d9f4bd);border-color:#9abf72}
-    .composer{min-height:0;padding:9px;background:linear-gradient(#e8f3fc,#cddff1);border-top:1px solid #87acd0;display:grid;grid-template-columns:minmax(0,1fr) 94px;gap:8px}
-    .composer textarea{min-width:0;resize:none;border:1px solid #6e9bc8;border-radius:5px;padding:9px;font:13px Tahoma,Verdana,sans-serif}
-    .send{border:1px solid #0a4b8e;border-radius:7px;color:#fff;font-weight:bold;background:linear-gradient(#68b5f1,#0b69c4 60%,#07509a);cursor:pointer}
+    .sysmsg{text-align:center;margin:12px 0;font-size:12px;color:#9a5b00;font-weight:bold}
+    .sysmsg span{display:inline-block;padding:4px 12px;border:1px dashed #e0a84c;border-radius:12px;background:#fff7e6}
+    .composer{padding:8px 9px;background:linear-gradient(#e8f3fc,#cddff1);border-top:1px solid #87acd0;display:grid;grid-template-columns:minmax(0,1fr) 94px;grid-template-rows:30px minmax(0,1fr);gap:6px 8px}
+    .toolbar{grid-column:1/-1;display:flex;gap:6px;align-items:center}
+    .tool{height:28px;padding:0 10px;border:1px solid #7ea6cf;border-radius:6px;background:linear-gradient(#fff,#dcebf8);cursor:pointer;font:13px Tahoma,Verdana,sans-serif;color:#123}
+    .tool:hover:not(:disabled){background:linear-gradient(#fff,#cfe4f7)}
+    .tool:disabled{opacity:.5;cursor:default}
+    .composer textarea{grid-column:1;grid-row:2;min-width:0;resize:none;border:1px solid #6e9bc8;border-radius:5px;padding:9px;font:14px Tahoma,Verdana,sans-serif}
+    .send{grid-column:2;grid-row:2;border:1px solid #0a4b8e;border-radius:7px;color:#fff;font-weight:bold;background:linear-gradient(#68b5f1,#0b69c4 60%,#07509a);cursor:pointer}
     .send:disabled{opacity:.5;cursor:default}
+    .emoji-panel{position:absolute;left:9px;bottom:120px;width:min(340px,calc(100% - 18px));display:none;border:1px solid #6e9bc8;border-radius:8px;background:#fff;box-shadow:0 8px 24px #174b8666;z-index:5;overflow:hidden}
+    .emoji-panel.open{display:block}
+    .emoji-tabs{display:flex;background:linear-gradient(#f4faff,#d9ecff);border-bottom:1px solid #9fc2e5}
+    .emoji-tabs button{flex:1;padding:6px 0;border:0;background:transparent;font-size:18px;cursor:pointer}
+    .emoji-tabs button.active{background:#fff;box-shadow:inset 0 -3px #1266c9}
+    .emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);max-height:190px;overflow-y:auto;padding:6px}
+    .emoji-grid button{border:0;background:transparent;font-size:22px;line-height:1;padding:5px 0;border-radius:6px;cursor:pointer}
+    .emoji-grid button:hover{background:#e3effa}
     .toast{position:fixed;right:24px;bottom:24px;display:none;max-width:330px;padding:13px 16px;border:1px solid #245c94;border-radius:8px;background:linear-gradient(#fff,#ddecfa);box-shadow:0 8px 24px #174b8666;z-index:10}
     @media(max-width:700px){
       .app{width:100vw;height:100vh;height:100dvh;margin:0;border-radius:0}
       .layout{grid-template-columns:175px minmax(0,1fr)}
       .msg{max-width:90%}
+      .contact .st{display:none}
     }
   </style>
 </head>
 <body>
-  <div class="app">
+  <div class="app" id="app">
     <header class="title"><span class="orb"></span><strong>RetroTalk 2000</strong><span>• conversaciones privadas</span></header>
     <div class="layout">
       <aside class="sidebar">
         <div class="profile">
           <div class="avatar">☺</div><b id="myName">Conectando…</b>
-          <div class="online">● Disponible</div><div class="small">Chat interno</div>
+          <div class="small">Chat interno</div>
           <div style="clear:both"></div>
+          <select id="statusSelect" class="status-select" title="Cambiar mi estado" disabled>
+            <option value="disponible">🟢 Disponible</option>
+            <option value="llamada">🔴 En una llamada</option>
+            <option value="cafe">🟠 En un café</option>
+            <option value="desconectado">⚫ Desconectado</option>
+          </select>
         </div>
         <div class="contacts-title">Contactos</div>
         <div id="contacts" class="contacts"></div>
@@ -65,7 +95,12 @@
       <main class="chat">
         <div class="chat-head"><b id="chatName">Ningún contacto seleccionado</b><div id="chatStatus" class="small">Elige una persona de la lista</div></div>
         <div id="messages" class="messages"><div class="empty">Selecciona un contacto para iniciar una conversación privada.</div></div>
+        <div id="emojiPanel" class="emoji-panel"><div id="emojiTabs" class="emoji-tabs"></div><div id="emojiGrid" class="emoji-grid"></div></div>
         <div class="composer">
+          <div class="toolbar">
+            <button type="button" id="emojiButton" class="tool" disabled title="Emoticonos">😊 Emojis</button>
+            <button type="button" id="nudgeButton" class="tool" disabled title="Enviar un zumbido">📳 Zumbido</button>
+          </div>
           <textarea id="messageBox" disabled maxlength="1000" placeholder="Intro envía · Shift+Intro crea una línea"></textarea>
           <button id="sendButton" class="send" disabled>Enviar</button>
         </div>
@@ -76,14 +111,30 @@
 
   <script>
     const BASE_TITLE = 'RetroTalk 2000';
+    const AWAY_MS = 20000;      // tiempo con la página oculta/equipo bloqueado antes de pasar a "desconectado"
+    const NUDGE_COOLDOWN = 10000;
+    const STATUS = {
+      disponible:   {t: 'Disponible',      c: 'on',       i: '●'},
+      llamada:      {t: 'En una llamada',  c: 'llamada',  i: '●'},
+      cafe:         {t: 'En un café',      c: 'cafe',     i: '●'},
+      desconectado: {t: 'Desconectado',    c: '',         i: '○'}
+    };
+    const EMOJI_TABS = [
+      {icon: '😀', list: '😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 😐 😑 😶 😏 😒 🙄 😬 🤥 😔 😪 😴 😷 🤒 🤕 🤢 🤮 🥵 🥶 🥴 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 😮 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 💩 🤡 👻 👽 🤖'},
+      {icon: '👍', list: '👍 👎 👌 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ ✋ 🤚 🖖 👋 🤝 🙏 👏 🙌 👐 🤲 💪 ✍️ 💅 🙋 🤷 🤦 🙈 🙉 🙊'},
+      {icon: '❤️', list: '❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💋 💯 💢 💥 💫 💦 💤 🔥 ⭐ 🌟 ✨ ⚡ 🎉 🎊 🎈 🎁'},
+      {icon: '🐶', list: '🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🐔 🐧 🐦 🦆 🦉 🐴 🦄 🐝 🦋 🐌 🐢 🐍 🐙 🐬 🐳 🌸 🌹 🌻 🌲 🌴 🌞 🌙 ⛅ 🌈'},
+      {icon: '🍕', list: '🍏 🍎 🍌 🍉 🍇 🍓 🍒 🍑 🍍 🥑 🍅 🥕 🌽 🍞 🧀 🍔 🍟 🍕 🌭 🌮 🍣 🍜 🍝 🍦 🍩 🍪 🎂 🍫 🍿 ☕ 🍵 🍺 🍻 🥂 🍷 🍹'},
+      {icon: '⚽', list: '⚽ 🏀 🏈 ⚾ 🎾 🏐 🎱 🏓 🥊 🎮 🎲 🎯 🎸 🎹 🎧 🎤 🎬 📷 💻 📱 ☎️ 🔔 💡 📚 ✏️ 📌 🔑 🔒 🚗 🚲 ✈️ 🚀 🏠 💰 ⏰'}
+    ];
+    const EMOTICONS = {':)':'🙂',':-)':'🙂',':D':'😃',':-D':'😃',';)':'😉',';-)':'😉',':(':'🙁',':-(':'🙁',':P':'😛',':-P':'😛',':O':'😮',':-O':'😮',"(L)":'❤️','(Y)':'👍','(N)':'👎'};
+
     const state = {
-      me: null, contacts: [], selected: null,
-      cursor: 0,            // última fila de la hoja recibida para el chat abierto
-      loaded: false,        // ¿ya llegó la carga inicial del chat abierto?
-      seen: new Set(),
-      gen: 0,               // cambia al cambiar de contacto: descarta respuestas antiguas
+      me: null, contacts: [], selected: null, myStatus: 'disponible',
+      cursor: 0, loaded: false, seen: new Set(), gen: 0,
       busy: false, again: false, failures: 0, timer: null,
-      incoming: {}, readRow: {}, notified: {}, firstSync: true,
+      incoming: {}, readRow: {}, notified: {}, nudged: {}, firstSync: true,
+      away: false, hideTimer: null, nudgeLock: false, emojiTab: 0,
       lastContactsHtml: '', toastTimer: null, audio: null
     };
     const el = id => document.getElementById(id);
@@ -91,26 +142,41 @@
       google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](...args));
     const escapeHtml = v => String(v).replace(/[&<>"']/g, ch =>
       ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    /* ---------- Sonido (un único AudioContext reutilizado) ---------- */
-    function tone(freq, duration, volume = .04) {
+    /* ---------- Sonido ---------- */
+    function audioCtx() {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!state.audio) state.audio = new Ctx();
+      if (state.audio.state === 'suspended') state.audio.resume();
+      return state.audio;
+    }
+    function tone(freq, duration, volume = .04, type = 'sine', delay = 0) {
       try {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!state.audio) state.audio = new Ctx();
-        const ctx = state.audio;
-        if (ctx.state === 'suspended') ctx.resume();
+        const ctx = audioCtx(), t = ctx.currentTime + delay / 1000;
         const osc = ctx.createOscillator(), gain = ctx.createGain();
-        osc.frequency.value = freq;
-        gain.gain.value = volume;
+        osc.type = type; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(volume, t);
+        gain.gain.exponentialRampToValueAtTime(.0001, t + duration / 1000);
         osc.connect(gain); gain.connect(ctx.destination);
-        osc.start();
-        gain.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime + duration / 1000);
-        osc.stop(ctx.currentTime + duration / 1000);
+        osc.start(t); osc.stop(t + duration / 1000 + .02);
       } catch (_) {}
     }
-    const sendSound = () => { tone(660, 90); setTimeout(() => tone(880, 110), 80); };
-    const receiveSound = () => { tone(880, 100); setTimeout(() => tone(660, 130), 100); };
-    document.addEventListener('click', () => { if (state.audio && state.audio.state === 'suspended') state.audio.resume(); });
+    const sendSound = () => { tone(660, 90); tone(880, 110, .04, 'sine', 80); };
+    const receiveSound = () => { tone(880, 100); tone(660, 130, .04, 'sine', 100); };
+    // Zumbido estilo Messenger: vibración grave y rápida con un golpe final
+    function buzzSound() {
+      for (let i = 0; i < 9; i++) tone(i % 2 ? 95 : 130, 70, .09, 'sawtooth', i * 65);
+      tone(70, 220, .12, 'square', 600);
+      tone(180, 90, .05, 'triangle', 0);
+    }
+    function buzzEffect() {
+      buzzSound();
+      const app = el('app');
+      app.classList.remove('shake'); void app.offsetWidth; app.classList.add('shake');
+      setTimeout(() => app.classList.remove('shake'), 800);
+    }
+    document.addEventListener('click', () => { try { audioCtx(); } catch (_) {} });
 
     function showError(error) {
       const t = el('toast');
@@ -120,7 +186,19 @@
       state.toastTimer = setTimeout(() => t.style.display = 'none', 4000);
     }
 
+    /* ---------- Estado propio ---------- */
+    function setMyStatusUi(value) {
+      state.myStatus = value;
+      el('statusSelect').value = value;
+    }
+    el('statusSelect').addEventListener('change', async event => {
+      const value = event.target.value, previous = state.myStatus;
+      try { await api('setStatus', value); state.myStatus = value; }
+      catch (error) { event.target.value = previous; showError(error); }
+    });
+
     /* ---------- Contactos ---------- */
+    const statusOf = c => STATUS[c.estado] || STATUS.desconectado;
     const unreadOf = c => {
       if (state.selected && state.selected.email === c.email) return false;
       return (state.incoming[c.email] || 0) > (state.readRow[c.email] || 0);
@@ -130,13 +208,14 @@
       const html = state.contacts.length
         ? state.contacts.map(c => {
             const active = state.selected && state.selected.email === c.email;
-            const unread = unreadOf(c);
-            return `<button type="button" class="contact ${active ? 'active' : ''} ${unread ? 'unread' : ''}" data-email="${escapeHtml(c.email)}">` +
-              `<i class="dot ${c.online ? 'on' : ''}"></i><span class="name">${escapeHtml(c.nombre)}</span>` +
+            const unread = unreadOf(c), st = statusOf(c);
+            return `<button type="button" class="contact ${active ? 'active' : ''} ${unread ? 'unread' : ''}" data-email="${escapeHtml(c.email)}" title="${st.t}">` +
+              `<i class="dot ${st.c}"></i><span class="name">${escapeHtml(c.nombre)}</span>` +
+              (c.estado === 'llamada' || c.estado === 'cafe' ? `<span class="st">${c.estado === 'llamada' ? '📞' : '☕'}</span>` : '') +
               (unread ? '<span class="badge">●</span>' : '') + `</button>`;
           }).join('')
         : '<div class="empty">Nadie más ha abierto la aplicación todavía.</div>';
-      if (html !== state.lastContactsHtml) {          // no repintar si no hay cambios
+      if (html !== state.lastContactsHtml) {
         const box = el('contacts'), top = box.scrollTop;
         box.innerHTML = html;
         box.scrollTop = top;
@@ -148,8 +227,17 @@
 
     function updateHeader() {
       if (!state.selected) return;
+      const st = statusOf(state.selected);
       el('chatName').textContent = state.selected.nombre;
-      el('chatStatus').textContent = state.selected.online ? '● Disponible' : '○ Desconectado';
+      el('chatStatus').textContent = `${st.i} ${st.t}`;
+    }
+
+    function updateTools() {
+      const none = !state.selected;
+      el('messageBox').disabled = none;
+      el('sendButton').disabled = none;
+      el('emojiButton').disabled = none;
+      el('nudgeButton').disabled = none || state.nudgeLock;
     }
 
     function selectContact(email) {
@@ -162,9 +250,9 @@
       state.seen.clear();
       state.readRow[email] = state.incoming[email] || 0;
       state.notified[email] = state.readRow[email];
+      closeEmoji();
       updateHeader();
-      el('messageBox').disabled = false;
-      el('sendButton').disabled = false;
+      updateTools();
       el('messages').innerHTML = '<div class="empty">Cargando conversación…</div>';
       renderContacts();
       tick();
@@ -176,44 +264,48 @@
       if (state.seen.has(message.id)) return false;
       state.seen.add(message.id);
       const box = el('messages');
-      const placeholder = box.querySelector('.empty');
-      if (placeholder) box.innerHTML = '';
+      if (box.querySelector('.empty')) box.innerHTML = '';
       const mine = message.emisorEmail === state.me.email;
       const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
       const item = document.createElement('div');
-      item.className = 'msg ' + (mine ? 'mine' : '');
-      item.innerHTML =
-        `<div class="meta">${escapeHtml(message.emisorNombre)} · ${new Date(message.fecha).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>` +
-        `<div class="bubble">${escapeHtml(message.mensaje).replace(/\n/g, '<br>')}</div>`;
+      if (message.tipo === 'zumbido') {
+        item.className = 'sysmsg';
+        item.innerHTML = '<span>📳 ' + (mine ? 'Has enviado un zumbido' : escapeHtml(message.emisorNombre) + ' te ha enviado un zumbido') + '</span>';
+      } else {
+        item.className = 'msg ' + (mine ? 'mine' : '');
+        item.innerHTML =
+          `<div class="meta">${escapeHtml(message.emisorNombre)} · ${new Date(message.fecha).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>` +
+          `<div class="bubble">${escapeHtml(message.mensaje).replace(/\n/g, '<br>')}</div>`;
+      }
       box.appendChild(item);
       if (mine || nearBottom || !state.loaded) requestAnimationFrame(() => box.scrollTop = box.scrollHeight);
       return true;
     }
 
-    /* ---------- Sincronización (un único bucle, sin solapamientos) ---------- */
+    /* ---------- Sincronización ---------- */
     function applySync(data, gen) {
-      // Contactos
       state.contacts = data.contactos;
       state.incoming = data.incoming || {};
+      const nudges = data.nudges || {};
       if (state.selected) {
         const fresh = state.contacts.find(c => c.email === state.selected.email);
         if (fresh) { state.selected = fresh; updateHeader(); }
       }
 
-      // Primera sincronización: lo que ya existía no se marca como "no leído"
+      // Primera sincronización: lo previo no cuenta como "no leído" ni dispara zumbidos
       if (state.firstSync) {
         Object.keys(state.incoming).forEach(e => { state.readRow[e] = state.incoming[e]; state.notified[e] = state.incoming[e]; });
+        Object.keys(nudges).forEach(e => { state.nudged[e] = nudges[e]; });
         state.firstSync = false;
       }
 
-      // Mensajes del chat abierto (solo si no se cambió de contacto mientras se esperaba)
       let sound = false;
       if (gen === state.gen && state.selected) {
         const initial = !state.loaded;
         data.mensajes.forEach(m => {
           const isNew = renderMessage(m);
           if (m.fila > state.cursor) state.cursor = m.fila;
-          if (isNew && !initial && m.emisorEmail !== state.me.email) sound = true;
+          if (isNew && !initial && m.tipo !== 'zumbido' && m.emisorEmail !== state.me.email) sound = true;
         });
         if (initial) {
           state.loaded = true;
@@ -224,21 +316,27 @@
         state.notified[e] = Math.max(state.notified[e] || 0, state.incoming[e] || 0);
       }
 
-      // Aviso sonoro de mensajes en otros chats
       Object.keys(state.incoming).forEach(e => {
         if (state.selected && state.selected.email === e) return;
         if (state.incoming[e] > (state.notified[e] || 0)) { state.notified[e] = state.incoming[e]; sound = true; }
       });
-      if (sound) receiveSound();
+
+      // Zumbidos recibidos (de cualquier contacto, tengas su chat abierto o no)
+      let buzz = false;
+      Object.keys(nudges).forEach(e => {
+        if (nudges[e] > (state.nudged[e] || 0)) { state.nudged[e] = nudges[e]; buzz = true; }
+      });
+
+      if (buzz) buzzEffect(); else if (sound) receiveSound();
       renderContacts();
     }
 
     async function tick() {
       clearTimeout(state.timer);
+      if (state.away) return;
       if (state.busy) { state.again = true; return; }
       state.busy = true;
-      const gen = state.gen;
-      const contact = state.selected;
+      const gen = state.gen, contact = state.selected;
       try {
         const data = await api('sync', contact ? contact.email : '', contact ? state.cursor : 0);
         state.failures = 0;
@@ -248,25 +346,83 @@
         if (state.failures === 1 || state.failures % 10 === 0) showError(error);
       } finally {
         state.busy = false;
-        const base = document.hidden ? 10000 : 3000;
-        const delay = state.again ? 0 : (state.failures ? Math.min(30000, base * 2) : base);
+        if (!state.away) {
+          const base = document.hidden ? 10000 : 3000;
+          const delay = state.again ? 0 : (state.failures ? Math.min(30000, base * 2) : base);
+          state.timer = setTimeout(tick, delay);
+        }
         state.again = false;
-        state.timer = setTimeout(tick, delay);
       }
     }
 
+    /* ---------- Ausente / desconectado automático ---------- */
+    async function goAway() {
+      if (state.away || !state.me) return;
+      state.away = true;
+      clearTimeout(state.timer);
+      while (state.busy) await sleep(200);
+      if (!state.away) return;
+      try { await api('goOffline'); } catch (_) {}
+    }
+    function comeBack() {
+      state.away = false;
+      state.failures = 0;
+      tick();
+    }
+    document.addEventListener('visibilitychange', () => {
+      clearTimeout(state.hideTimer);
+      if (document.hidden) state.hideTimer = setTimeout(goAway, AWAY_MS);
+      else if (state.away) comeBack();
+      else tick();
+    });
+    window.addEventListener('pagehide', () => { try { google.script.run.goOffline(); } catch (_) {} });
+
+    /* ---------- Emojis ---------- */
+    function insertAtCursor(text) {
+      const box = el('messageBox'), v = box.value;
+      const s = box.selectionStart == null ? v.length : box.selectionStart;
+      const e = box.selectionEnd == null ? s : box.selectionEnd;
+      if (v.length - (e - s) + text.length > box.maxLength) return;
+      box.value = v.slice(0, s) + text + v.slice(e);
+      const p = s + text.length;
+      box.setSelectionRange(p, p);
+      box.focus();
+    }
+    function renderEmoji() {
+      el('emojiTabs').innerHTML = EMOJI_TABS.map((t, i) =>
+        `<button type="button" data-tab="${i}" class="${i === state.emojiTab ? 'active' : ''}">${t.icon}</button>`).join('');
+      el('emojiGrid').innerHTML = EMOJI_TABS[state.emojiTab].list.split(' ')
+        .map(e => `<button type="button" data-emoji="${e}">${e}</button>`).join('');
+    }
+    function closeEmoji() { el('emojiPanel').classList.remove('open'); }
+    el('emojiButton').addEventListener('click', event => {
+      event.stopPropagation();
+      const panel = el('emojiPanel');
+      if (panel.classList.toggle('open')) renderEmoji();
+    });
+    el('emojiPanel').addEventListener('click', event => {
+      event.stopPropagation();
+      const tab = event.target.closest('[data-tab]'), emoji = event.target.closest('[data-emoji]');
+      if (tab) { state.emojiTab = Number(tab.dataset.tab); renderEmoji(); }
+      if (emoji) insertAtCursor(emoji.dataset.emoji);
+    });
+    document.addEventListener('click', closeEmoji);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeEmoji(); });
+
     /* ---------- Enviar ---------- */
+    function emoticons(text) {
+      return text.replace(/(^|\s)(:-?[)(DPO]|;-?\)|\(L\)|\(Y\)|\(N\))(?=\s|$)/g, (m, sp, code) => sp + (EMOTICONS[code] || code));
+    }
+
     async function send() {
       const box = el('messageBox');
-      const text = box.value.trim();
+      const text = emoticons(box.value.trim());
       const contact = state.selected;
       if (!contact || !text) return;
       el('sendButton').disabled = true;
       try {
         const item = await api('sendMessage', contact.email, text);
         box.value = '';
-        // Se pinta solo si seguimos en el mismo chat. NO se avanza el cursor:
-        // así no se pueden saltar mensajes entrantes escritos justo antes que el nuestro.
         if (state.selected && state.selected.email === contact.email) renderMessage(item);
         sendSound();
       } catch (error) {
@@ -277,15 +433,31 @@
       }
     }
 
+    async function nudge() {
+      const contact = state.selected;
+      if (!contact || state.nudgeLock) return;
+      state.nudgeLock = true;
+      updateTools();
+      try {
+        const item = await api('sendNudge', contact.email);
+        if (state.selected && state.selected.email === contact.email) renderMessage(item);
+        buzzEffect();
+      } catch (error) {
+        showError(error);
+      } finally {
+        setTimeout(() => { state.nudgeLock = false; updateTools(); }, NUDGE_COOLDOWN);
+      }
+    }
+
     el('contacts').addEventListener('click', event => {
       const button = event.target.closest('.contact');
       if (button) selectContact(button.dataset.email);
     });
     el('sendButton').addEventListener('click', send);
+    el('nudgeButton').addEventListener('click', nudge);
     el('messageBox').addEventListener('keydown', event => {
       if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); send(); }
     });
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
 
     async function start() {
       try {
@@ -293,6 +465,8 @@
         state.me = data.me;
         state.contacts = data.contactos;
         el('myName').textContent = data.me.nombre;
+        el('statusSelect').disabled = false;
+        setMyStatusUi(data.me.estado || 'disponible');
         renderContacts();
         tick();
       } catch (error) {
