@@ -1,110 +1,131 @@
-const CONFIG = {
-  SHEET_NAME: 'Mensajes',
+const APP = {
   USERS_SHEET: 'Usuarios',
-  MAX_MESSAGES: 120,
-  POLL_LIMIT: 80
+  MESSAGES_SHEET: 'Mensajes',
+  ONLINE_MS: 45000,
+  MAX_ROWS: 500
 };
 
 function doGet() {
-  setupSheets_();
-  return HtmlService.createTemplateFromFile('Index')
-    .evaluate()
-    .setTitle('RetroTalk 2000')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  setupDatabase_();
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('RetroTalk 2000');
 }
 
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
-}
-
-function setupSheets_() {
+function setupDatabase_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sh = ss.getSheetByName(CONFIG.SHEET_NAME);
-  if (!sh) {
-    sh = ss.insertSheet(CONFIG.SHEET_NAME);
-    sh.appendRow(['id','timestamp','email','displayName','text']);
-    sh.setFrozenRows(1);
-  }
-  let users = ss.getSheetByName(CONFIG.USERS_SHEET);
+  let users = ss.getSheetByName(APP.USERS_SHEET);
   if (!users) {
-    users = ss.insertSheet(CONFIG.USERS_SHEET);
-    users.appendRow(['email','displayName','lastSeen','status']);
+    users = ss.insertSheet(APP.USERS_SHEET);
+    users.appendRow(['email', 'nombre', 'ultimaActividad']);
     users.setFrozenRows(1);
   }
-}
-
-function getBootstrap() {
-  setupSheets_();
-  const email = Session.getActiveUser().getEmail() || 'usuario@interno.local';
-  const name = email.split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g, c => c.toUpperCase());
-  touchUser_(email, name);
-  return {
-    me: { email, name },
-    messages: getMessages(''),
-    users: getOnlineUsers()
-  };
-}
-
-function sendMessage(text) {
-  text = String(text || '').trim();
-  if (!text) throw new Error('El mensaje está vacío.');
-  if (text.length > 1000) throw new Error('Máximo 1000 caracteres.');
-
-  setupSheets_();
-  const email = Session.getActiveUser().getEmail() || 'usuario@interno.local';
-  const name = email.split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g, c => c.toUpperCase());
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
-    const sh = SpreadsheetApp.getActive().getSheetByName(CONFIG.SHEET_NAME);
-    const id = Utilities.getUuid();
-    const now = new Date();
-    sh.appendRow([id, now, email, name, text]);
-    touchUser_(email, name);
-    return {id, timestamp: now.toISOString(), email, displayName: name, text};
-  } finally {
-    lock.releaseLock();
+  let messages = ss.getSheetByName(APP.MESSAGES_SHEET);
+  if (!messages) {
+    messages = ss.insertSheet(APP.MESSAGES_SHEET);
+    messages.appendRow(['id', 'fecha', 'emisorEmail', 'emisorNombre', 'receptorEmail', 'mensaje']);
+    messages.setFrozenRows(1);
   }
 }
 
-function getMessages(afterIso) {
-  setupSheets_();
-  const sh = SpreadsheetApp.getActive().getSheetByName(CONFIG.SHEET_NAME);
-  const last = sh.getLastRow();
-  if (last < 2) return [];
-  const start = Math.max(2, last - CONFIG.MAX_MESSAGES + 1);
-  const rows = sh.getRange(start, 1, last - start + 1, 5).getValues();
-  const after = afterIso ? new Date(afterIso).getTime() : 0;
-  return rows.map(r => ({
-    id: r[0], timestamp: new Date(r[1]).toISOString(), email: r[2], displayName: r[3], text: r[4]
-  })).filter(m => new Date(m.timestamp).getTime() > after).slice(-CONFIG.POLL_LIMIT);
+function getIdentity_() {
+  const email = Session.getActiveUser().getEmail();
+  if (!email) {
+    throw new Error('No se pudo identificar al usuario. Publica la Web App para usuarios de tu dominio y ejecútala como usuario que accede.');
+  }
+  const nombre = email.split('@')[0]
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+  return { email, nombre };
 }
 
-function heartbeat() {
-  const email = Session.getActiveUser().getEmail() || 'usuario@interno.local';
-  const name = email.split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g, c => c.toUpperCase());
-  touchUser_(email, name);
-  return getOnlineUsers();
-}
-
-function touchUser_(email, name) {
-  const sh = SpreadsheetApp.getActive().getSheetByName(CONFIG.USERS_SHEET);
-  const values = sh.getDataRange().getValues();
-  const now = new Date();
-  for (let i = 1; i < values.length; i++) {
-    if (values[i][0] === email) {
-      sh.getRange(i + 1, 2, 1, 3).setValues([[name, now, 'online']]);
+function touchUser_(user) {
+  const sheet = SpreadsheetApp.getActive().getSheetByName(APP.USERS_SHEET);
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === user.email) {
+      sheet.getRange(i + 1, 2, 1, 2).setValues([[user.nombre, new Date()]]);
       return;
     }
   }
-  sh.appendRow([email, name, now, 'online']);
+  sheet.appendRow([user.email, user.nombre, new Date()]);
 }
 
-function getOnlineUsers() {
-  const sh = SpreadsheetApp.getActive().getSheetByName(CONFIG.USERS_SHEET);
-  const values = sh.getDataRange().getValues().slice(1);
-  const cutoff = Date.now() - 45000;
-  return values.map(r => ({
-    email:r[0], name:r[1], lastSeen:new Date(r[2]).toISOString(), online:new Date(r[2]).getTime() >= cutoff
-  })).sort((a,b) => Number(b.online)-Number(a.online) || a.name.localeCompare(b.name));
+function getContacts_() {
+  const me = getIdentity_();
+  const sheet = SpreadsheetApp.getActive().getSheetByName(APP.USERS_SHEET);
+  const cutoff = Date.now() - APP.ONLINE_MS;
+  return sheet.getDataRange().getValues().slice(1)
+    .filter(row => row[0] && row[0] !== me.email)
+    .map(row => ({
+      email: String(row[0]),
+      nombre: String(row[1] || row[0]),
+      online: new Date(row[2]).getTime() >= cutoff
+    }))
+    .sort((a, b) => Number(b.online) - Number(a.online) || a.nombre.localeCompare(b.nombre));
+}
+
+function bootstrap() {
+  setupDatabase_();
+  const me = getIdentity_();
+  touchUser_(me);
+  return { me, contactos: getContacts_() };
+}
+
+function heartbeat() {
+  const me = getIdentity_();
+  touchUser_(me);
+  return getContacts_();
+}
+
+function getConversation(contactEmail, afterIso) {
+  if (!contactEmail) return [];
+  const me = getIdentity_();
+  touchUser_(me);
+  const sheet = SpreadsheetApp.getActive().getSheetByName(APP.MESSAGES_SHEET);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  const startRow = Math.max(2, lastRow - APP.MAX_ROWS + 1);
+  const rows = sheet.getRange(startRow, 1, lastRow - startRow + 1, 6).getValues();
+  const after = afterIso ? new Date(afterIso).getTime() : 0;
+  return rows
+    .filter(row => {
+      const pair = (row[2] === me.email && row[4] === contactEmail) ||
+                   (row[2] === contactEmail && row[4] === me.email);
+      return pair && new Date(row[1]).getTime() > after;
+    })
+    .map(row => ({
+      id: String(row[0]),
+      fecha: new Date(row[1]).toISOString(),
+      emisorEmail: String(row[2]),
+      emisorNombre: String(row[3]),
+      receptorEmail: String(row[4]),
+      mensaje: String(row[5])
+    }));
+}
+
+function sendMessage(contactEmail, message) {
+  const me = getIdentity_();
+  const text = String(message || '').trim();
+  if (!contactEmail) throw new Error('Selecciona un contacto.');
+  if (!text) throw new Error('El mensaje está vacío.');
+  if (text.length > 1000) throw new Error('El mensaje supera los 1000 caracteres.');
+  touchUser_(me);
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const now = new Date();
+    const item = {
+      id: Utilities.getUuid(),
+      fecha: now.toISOString(),
+      emisorEmail: me.email,
+      emisorNombre: me.nombre,
+      receptorEmail: contactEmail,
+      mensaje: text
+    };
+    SpreadsheetApp.getActive().getSheetByName(APP.MESSAGES_SHEET)
+      .appendRow([item.id, now, item.emisorEmail, item.emisorNombre, item.receptorEmail, item.mensaje]);
+    return item;
+  } finally {
+    lock.releaseLock();
+  }
 }

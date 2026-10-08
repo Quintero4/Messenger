@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    *{box-sizing:border-box}html,body{height:100%;margin:0}body{font:13px Tahoma,Verdana,sans-serif;background:radial-gradient(circle at 30% 10%,#fff,#dbeeff 38%,#91bbe4);color:#123;overflow:hidden}.app{width:min(1050px,96vw);height:min(760px,94vh);margin:3vh auto;border:1px solid #174b86;border-radius:14px;overflow:hidden;box-shadow:0 18px 55px #1c4e8066;background:#f7fbff;display:flex;flex-direction:column}.title{flex:0 0 48px;padding:7px 12px;color:#fff;background:linear-gradient(#4aa2ed,#0a61b8 55%,#06498e);display:flex;align-items:center;gap:10px}.orb{width:30px;height:30px;border-radius:50%;background:linear-gradient(145deg,#b9ff91,#49a61e);border:2px solid #fff}.layout{flex:1;min-height:0;display:grid;grid-template-columns:240px minmax(0,1fr)}.sidebar{min-height:0;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #6c9fd5;background:linear-gradient(90deg,#eef7ff,#d9ecff)}.profile{flex:0 0 auto;padding:14px 12px;border-bottom:1px solid #94b8dd}.avatar{width:48px;height:48px;border:3px solid #fff;outline:1px solid #85a9cd;border-radius:8px;background:linear-gradient(135deg,#94cfff,#2c6cb3);display:grid;place-items:center;color:#fff;font-size:25px;float:left;margin-right:10px}.online{color:#368509}.small{font-size:11px;color:#59728c}.contacts-title{flex:0 0 auto;padding:12px 10px 6px;font-weight:bold;color:#174b86}.contacts{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;padding-bottom:8px}.contact{width:100%;padding:10px;border:0;border-top:1px solid transparent;border-bottom:1px solid transparent;background:transparent;display:flex;gap:8px;align-items:center;text-align:left;font:13px Tahoma,Verdana,sans-serif;color:#123;cursor:pointer}.contact:hover,.contact.active{background:#fff;border-color:#9fc2e5}.contact:focus-visible{outline:2px solid #1266c9;outline-offset:-2px}.dot{flex:0 0 11px;width:11px;height:11px;border-radius:50%;background:#aaa;border:1px solid #fff;box-shadow:0 0 0 1px #777}.dot.on{background:#59ca25}.chat{min-width:0;min-height:0;display:grid;grid-template-rows:66px minmax(0,1fr) 96px;overflow:hidden;background:#fff}.chat-head{padding:10px 14px;background:linear-gradient(#fff,#e6f2fc);border-bottom:1px solid #8cb4dd}.chat-head b{font-size:16px;color:#174b86}.messages{min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;overscroll-behavior:contain;padding:15px;background:linear-gradient(#fff,#f2f8fe)}.empty{min-height:100%;display:grid;place-items:center;text-align:center;color:#6b8299}.msg{max-width:76%;margin-bottom:12px;overflow-wrap:anywhere}.msg.mine{margin-left:auto;text-align:right}.meta{font-size:11px;color:#577795;margin-bottom:3px}.bubble{display:inline-block;text-align:left;padding:9px 12px;border:1px solid #8eb8de;border-radius:5px 13px 13px;background:linear-gradient(#fff,#e8f3fc)}.mine .bubble{border-radius:13px 5px 13px 13px;background:linear-gradient(#f5ffe9,#d9f4bd);border-color:#9abf72}.composer{min-height:0;padding:9px;background:linear-gradient(#e8f3fc,#cddff1);border-top:1px solid #87acd0;display:grid;grid-template-columns:minmax(0,1fr) 94px;gap:8px}.composer textarea{min-width:0;resize:none;border:1px solid #6e9bc8;border-radius:5px;padding:9px;font:13px Tahoma}.send{border:1px solid #0a4b8e;border-radius:7px;color:#fff;font-weight:bold;background:linear-gradient(#68b5f1,#0b69c4 60%,#07509a);cursor:pointer}.send:disabled{opacity:.5}.toast{position:fixed;right:24px;bottom:24px;display:none;max-width:330px;padding:13px 16px;border:1px solid #245c94;border-radius:8px;background:linear-gradient(#fff,#ddecfa);box-shadow:0 8px 24px #174b8666}@media(max-width:700px){.app{width:100vw;height:100vh;margin:0;border-radius:0}.layout{grid-template-columns:175px minmax(0,1fr)}.msg{max-width:90%}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="title"><span class="orb"></span><strong>RetroTalk 2000</strong><span>• conversaciones privadas</span></header>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="profile"><div class="avatar">☺</div><b id="myName">Conectando…</b><div class="online">● Disponible</div><div class="small">Chat interno</div><div style="clear:both"></div></div>
+        <div class="contacts-title">Contactos</div>
+        <div id="contacts" class="contacts"></div>
+      </aside>
+      <main class="chat">
+        <div class="chat-head"><b id="chatName">Ningún contacto seleccionado</b><div id="chatStatus" class="small">Elige una persona de la lista</div></div>
+        <div id="messages" class="messages"><div class="empty">Selecciona un contacto para iniciar una conversación privada.</div></div>
+        <div class="composer"><textarea id="messageBox" disabled maxlength="1000" placeholder="Intro envía · Shift+Intro crea una línea"></textarea><button id="sendButton" class="send" disabled>Enviar</button></div>
+      </main>
+    </div>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script>
+    const state={me:null,contacts:[],selected:null,lastMessage:'',seen:new Set(),poll:null};
+    const el=id=>document.getElementById(id);
+    const api=(name,...args)=>new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](...args));
+    const escapeHtml=value=>String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+    function tone(freq,duration,volume=.04){try{const AudioCtx=window.AudioContext||window.webkitAudioContext,ctx=new AudioCtx(),osc=ctx.createOscillator(),gain=ctx.createGain();osc.frequency.value=freq;gain.gain.value=volume;osc.connect(gain);gain.connect(ctx.destination);osc.start();gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+duration/1000);osc.stop(ctx.currentTime+duration/1000)}catch(_){}}
+    function sendSound(){tone(660,90);setTimeout(()=>tone(880,110),80)}
+    function receiveSound(){tone(880,100);setTimeout(()=>tone(660,130),100)}
+    function showError(error){el('toast').textContent=error.message||String(error);el('toast').style.display='block';setTimeout(()=>el('toast').style.display='none',4000)}
+    function renderContacts(){el('contacts').innerHTML=state.contacts.length?state.contacts.map(c=>`<button type="button" class="contact ${state.selected?.email===c.email?'active':''}" data-email="${escapeHtml(c.email)}"><i class="dot ${c.online?'on':''}"></i><span>${escapeHtml(c.nombre)}</span></button>`).join(''):'<div class="empty">Nadie más ha abierto la aplicación todavía.</div>'}
+    function selectContact(email){const contact=state.contacts.find(c=>c.email===email);if(!contact)return;state.selected=contact;state.lastMessage='';state.seen.clear();el('chatName').textContent=contact.nombre;el('chatStatus').textContent=contact.online?'● Disponible':'○ Desconectado';el('messageBox').disabled=false;el('sendButton').disabled=false;el('messages').innerHTML='';renderContacts();loadConversation(true);el('messageBox').focus()}
+    function renderMessage(message,notify=false){if(state.seen.has(message.id))return;state.seen.add(message.id);state.lastMessage=message.fecha;const mine=message.emisorEmail===state.me.email;const item=document.createElement('div');item.className='msg '+(mine?'mine':'');item.innerHTML=`<div class="meta">${escapeHtml(message.emisorNombre)} · ${new Date(message.fecha).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div><div class="bubble">${escapeHtml(message.mensaje).replace(/\n/g,'<br>')}</div>`;el('messages').appendChild(item);requestAnimationFrame(()=>el('messages').scrollTop=el('messages').scrollHeight);if(notify&&!mine)receiveSound()}
+    async function loadConversation(initial=false){if(!state.selected)return;try{const items=await api('getConversation',state.selected.email,initial?'':state.lastMessage);if(initial&&items.length===0)el('messages').innerHTML='<div class="empty">No hay mensajes todavía. Escribe el primero.</div>';if(items.length){if(initial)el('messages').innerHTML='';items.forEach(item=>renderMessage(item,!initial))}}catch(error){showError(error)}clearTimeout(state.poll);state.poll=setTimeout(poll,3000)}
+    async function poll(){try{state.contacts=await api('heartbeat');renderContacts();await loadConversation(false)}catch(error){clearTimeout(state.poll);state.poll=setTimeout(poll,5000)}}
+    async function send(){const text=el('messageBox').value.trim();if(!state.selected||!text)return;el('sendButton').disabled=true;try{const item=await api('sendMessage',state.selected.email,text);if(el('messages').querySelector('.empty'))el('messages').innerHTML='';renderMessage(item);el('messageBox').value='';sendSound()}catch(error){showError(error)}finally{el('sendButton').disabled=false;el('messageBox').focus()}}
+    el('contacts').addEventListener('click',event=>{const button=event.target.closest('.contact');if(button)selectContact(button.dataset.email)});
+    el('sendButton').addEventListener('click',send);
+    el('messageBox').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}});
+    async function start(){try{const data=await api('bootstrap');state.me=data.me;state.contacts=data.contactos;el('myName').textContent=data.me.nombre;renderContacts();state.poll=setTimeout(poll,3000)}catch(error){showError(error)}}
+    start();
+  </script>
+</body>
+</html>
