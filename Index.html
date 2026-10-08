@@ -1,15 +1,306 @@
-<!doctype html><html lang="es"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
-:root{--blue:#1266c9;--deep:#063b85;--pale:#eaf4ff;--line:#8bb7e8;--green:#72c83e;--gray:#d8e5f2}*{box-sizing:border-box}body{margin:0;font:13px Tahoma,Verdana,sans-serif;background:radial-gradient(circle at 30% 10%,#fff 0,#dbeeff 35%,#94bfe8 100%);color:#123}.shell{width:min(1000px,96vw);height:min(720px,94vh);margin:3vh auto;border:1px solid #174b86;border-radius:14px;overflow:hidden;box-shadow:0 18px 55px #1c4e8066;background:#f7fbff}.titlebar{height:48px;padding:7px 12px;color:white;background:linear-gradient(#4aa2ed,#0a61b8 55%,#06498e);display:flex;align-items:center;gap:10px}.orb{width:30px;height:30px;border-radius:50%;background:linear-gradient(145deg,#b9ff91,#49a61e);border:2px solid white;box-shadow:0 0 0 1px #1b6410}.titlebar strong{font-size:17px;text-shadow:0 1px #034}.winbtns{margin-left:auto;display:flex;gap:4px}.winbtns i{width:22px;height:18px;border:1px solid #dcefff;border-radius:3px;background:linear-gradient(#fff8,#0c5aaa);display:block}.layout{height:calc(100% - 48px);display:grid;grid-template-columns:220px 1fr}.contacts{border-right:1px solid #6c9fd5;background:linear-gradient(90deg,#eef7ff,#d9ecff);display:flex;flex-direction:column}.profile{padding:14px 12px;border-bottom:1px solid #94b8dd;background:#fff8}.avatar{width:52px;height:52px;border:3px solid white;outline:1px solid #85a9cd;border-radius:8px;background:linear-gradient(135deg,#94cfff,#2c6cb3);display:grid;place-items:center;color:#fff;font-size:28px;float:left;margin-right:10px}.status{color:#368509}.contact-title{padding:9px;font-weight:bold;color:#174b86}.user{padding:7px 10px;display:flex;gap:8px;align-items:center}.dot{width:11px;height:11px;border-radius:50%;background:#aaa;border:1px solid white;box-shadow:0 0 0 1px #777}.dot.on{background:#59ca25}.chat{display:grid;grid-template-rows:66px 1fr 95px;background:white}.buddybar{padding:10px 14px;background:linear-gradient(#fff,#e6f2fc);border-bottom:1px solid #8cb4dd}.buddybar b{font-size:16px;color:#174b86}.tiny{font-size:11px;color:#59728c}.messages{overflow:auto;padding:15px;background:linear-gradient(#fff,#f2f8fe)}.msg{max-width:75%;margin:0 0 12px}.msg.me{margin-left:auto;text-align:right}.who{font-size:11px;color:#577795;margin-bottom:3px}.bubble{display:inline-block;text-align:left;padding:9px 12px;border:1px solid #8eb8de;border-radius:5px 13px 13px 13px;background:linear-gradient(#fff,#e8f3fc);box-shadow:0 2px 4px #2b5f8a22}.me .bubble{border-radius:13px 5px 13px 13px;background:linear-gradient(#f5ffe9,#d9f4bd);border-color:#9abf72}.composer{padding:9px;background:linear-gradient(#e8f3fc,#cddff1);border-top:1px solid #87acd0;display:grid;grid-template-columns:1fr 94px;gap:8px}.composer textarea{resize:none;border:1px solid #6e9bc8;border-radius:5px;padding:9px;font:13px Tahoma;background:white;box-shadow:inset 0 1px 3px #7893aa55}.send{border:1px solid #0a4b8e;border-radius:7px;color:white;font-weight:bold;background:linear-gradient(#68b5f1,#0b69c4 60%,#07509a);cursor:pointer}.send:hover{filter:brightness(1.08)}.toast{position:fixed;right:25px;bottom:25px;padding:14px 18px;border:1px solid #245c94;border-radius:9px;background:linear-gradient(#fff,#ddecfa);box-shadow:0 8px 24px #174b8666;display:none}.login{position:fixed;inset:0;background:#0a4b8e88;display:grid;place-items:center;z-index:4}.card{background:#f5faff;border:1px solid #174b86;border-radius:12px;padding:22px;width:310px;box-shadow:0 18px 60px #1238}.card input{width:100%;padding:9px;border:1px solid #7da8d3;margin:10px 0}.card button{width:100%;padding:9px}.hidden{display:none}@media(max-width:700px){.layout{grid-template-columns:1fr}.contacts{display:none}.shell{height:100vh;width:100vw;margin:0;border-radius:0}.msg{max-width:88%}}
-</style></head><body><div class="shell"><div class="titlebar"><span class="orb"></span><strong>RetroTalk 2000</strong><span>• Chat interno</span><div class="winbtns"><i></i><i></i><i></i></div></div><div class="layout"><aside class="contacts"><div class="profile"><div class="avatar">☺</div><b id="myName">Conectando…</b><div class="status">● Disponible</div><div class="tiny">Trabajando con nostalgia</div><div style="clear:both"></div></div><div class="contact-title">Contactos</div><div id="users"></div></aside><main class="chat"><div class="buddybar"><b>Sala general</b><div class="tiny">Los mensajes se guardan en Google Sheets • actualización automática</div><button id="notifyBtn" style="float:right;margin-top:-25px">Activar avisos</button></div><div id="messages" class="messages"></div><div class="composer"><textarea id="text" maxlength="1000" placeholder="Escribe un mensaje… (Enter para enviar)"></textarea><button class="send" id="send">Enviar</button></div></main></div></div><div class="toast" id="toast"></div>
-<script>
-const state={me:null,last:'',seen:new Set(),demo:!(window.google&&google.script&&google.script.run),timer:null};
-const $=s=>document.querySelector(s); const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-function call(fn,...args){return new Promise((ok,bad)=>google.script.run.withSuccessHandler(ok).withFailureHandler(bad)[fn](...args))}
-function renderMsg(m,notify=false){if(state.seen.has(m.id))return;state.seen.add(m.id);state.last=m.timestamp;const me=state.me&&m.email===state.me.email;const el=document.createElement('div');el.className='msg '+(me?'me':'');el.innerHTML=`<div class="who">${esc(m.displayName)} · ${new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div><div class="bubble">${esc(m.text).replace(/\n/g,'<br>')}</div>`;$('#messages').append(el);$('#messages').scrollTop=$('#messages').scrollHeight;if(notify&&!me)announce(m)}
-function renderUsers(users){$('#users').innerHTML=users.map(u=>`<div class="user"><i class="dot ${u.online?'on':''}"></i><span>${esc(u.name)}</span></div>`).join('')}
-function announce(m){$('#toast').textContent=`${m.displayName}: ${m.text}`;$('#toast').style.display='block';setTimeout(()=>$('#toast').style.display='none',3500);document.title='● Nuevo mensaje - RetroTalk';setTimeout(()=>document.title='RetroTalk 2000',4000);try{new Audio('data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YRAAAAAAAP8A/wAAAP8A').play()}catch(e){}if(Notification.permission==='granted')new Notification('RetroTalk 2000',{body:`${m.displayName}: ${m.text}`})}
-async function boot(){if(state.demo){state.me={email:'fernando@empresa.es',name:'Fernando'};$('#myName').textContent=state.me.name;renderUsers([{name:'Laura',online:true},{name:'Equipo Formación',online:true},{name:'Soporte',online:false}]);[{id:'1',timestamp:new Date(Date.now()-120000).toISOString(),email:'laura@empresa.es',displayName:'Laura',text:'¡Hola! Bienvenido al chat retro 👋'},{id:'2',timestamp:new Date(Date.now()-50000).toISOString(),email:state.me.email,displayName:state.me.name,text:'Funciona genial. Parece 2003 otra vez.'}].forEach(m=>renderMsg(m));return}try{const d=await call('getBootstrap');state.me=d.me;$('#myName').textContent=d.me.name;renderUsers(d.users);d.messages.forEach(m=>renderMsg(m));poll()}catch(e){alert(e.message||e)}}
-async function poll(){try{const ms=await call('getMessages',state.last);ms.forEach(m=>renderMsg(m,true));renderUsers(await call('heartbeat'))}catch(e){}state.timer=setTimeout(poll,3000)}
-async function send(){const t=$('#text').value.trim();if(!t)return;$('#send').disabled=true;try{if(state.demo){renderMsg({id:crypto.randomUUID(),timestamp:new Date().toISOString(),email:state.me.email,displayName:state.me.name,text:t})}else{renderMsg(await call('sendMessage',t))}$('#text').value=''}catch(e){alert(e.message||e)}finally{$('#send').disabled=false;$('#text').focus()}}
-$('#send').onclick=send;$('#text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});$('#notifyBtn').onclick=async()=>{if(!('Notification'in window))return alert('El navegador no admite notificaciones.');const p=await Notification.requestPermission();$('#notifyBtn').textContent=p==='granted'?'Avisos activados':'Avisos bloqueados'};boot();
-</script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{font:13px Tahoma,Verdana,sans-serif;background:radial-gradient(circle at 30% 10%,#fff,#dbeeff 38%,#91bbe4);color:#123;overflow:hidden}
+    .app{width:min(1050px,96vw);height:min(760px,94vh);margin:3vh auto;border:1px solid #174b86;border-radius:14px;overflow:hidden;box-shadow:0 18px 55px #1c4e8066;background:#f7fbff;display:flex;flex-direction:column}
+    .title{flex:0 0 48px;padding:7px 12px;color:#fff;background:linear-gradient(#4aa2ed,#0a61b8 55%,#06498e);display:flex;align-items:center;gap:10px}
+    .orb{width:30px;height:30px;border-radius:50%;background:linear-gradient(145deg,#b9ff91,#49a61e);border:2px solid #fff}
+    .layout{flex:1;min-height:0;display:grid;grid-template-columns:240px minmax(0,1fr)}
+    .sidebar{min-height:0;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #6c9fd5;background:linear-gradient(90deg,#eef7ff,#d9ecff)}
+    .profile{flex:0 0 auto;padding:14px 12px;border-bottom:1px solid #94b8dd}
+    .avatar{width:48px;height:48px;border:3px solid #fff;outline:1px solid #85a9cd;border-radius:8px;background:linear-gradient(135deg,#94cfff,#2c6cb3);display:grid;place-items:center;color:#fff;font-size:25px;float:left;margin-right:10px}
+    .online{color:#368509}
+    .small{font-size:11px;color:#59728c}
+    .contacts-title{flex:0 0 auto;padding:12px 10px 6px;font-weight:bold;color:#174b86}
+    .contacts{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;padding-bottom:8px}
+    .contact{width:100%;padding:10px;border:0;border-top:1px solid transparent;border-bottom:1px solid transparent;background:transparent;display:flex;gap:8px;align-items:center;text-align:left;font:13px Tahoma,Verdana,sans-serif;color:#123;cursor:pointer}
+    .contact span.name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .contact:hover,.contact.active{background:#fff;border-color:#9fc2e5}
+    .contact:focus-visible{outline:2px solid #1266c9;outline-offset:-2px}
+    .contact.unread .name{font-weight:bold}
+    .badge{flex:0 0 auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e03a1e;color:#fff;font-size:11px;font-weight:bold;display:grid;place-items:center}
+    .dot{flex:0 0 11px;width:11px;height:11px;border-radius:50%;background:#aaa;border:1px solid #fff;box-shadow:0 0 0 1px #777}
+    .dot.on{background:#59ca25}
+    .chat{min-width:0;min-height:0;display:grid;grid-template-rows:66px minmax(0,1fr) 96px;overflow:hidden;background:#fff}
+    .chat-head{padding:10px 14px;background:linear-gradient(#fff,#e6f2fc);border-bottom:1px solid #8cb4dd}
+    .chat-head b{font-size:16px;color:#174b86}
+    .messages{min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;overscroll-behavior:contain;padding:15px;background:linear-gradient(#fff,#f2f8fe)}
+    .empty{min-height:100%;display:grid;place-items:center;text-align:center;color:#6b8299;padding:8px}
+    .msg{max-width:76%;margin-bottom:12px;overflow-wrap:anywhere}
+    .msg.mine{margin-left:auto;text-align:right}
+    .meta{font-size:11px;color:#577795;margin-bottom:3px}
+    .bubble{display:inline-block;text-align:left;padding:9px 12px;border:1px solid #8eb8de;border-radius:5px 13px 13px;background:linear-gradient(#fff,#e8f3fc)}
+    .mine .bubble{border-radius:13px 5px 13px 13px;background:linear-gradient(#f5ffe9,#d9f4bd);border-color:#9abf72}
+    .composer{min-height:0;padding:9px;background:linear-gradient(#e8f3fc,#cddff1);border-top:1px solid #87acd0;display:grid;grid-template-columns:minmax(0,1fr) 94px;gap:8px}
+    .composer textarea{min-width:0;resize:none;border:1px solid #6e9bc8;border-radius:5px;padding:9px;font:13px Tahoma,Verdana,sans-serif}
+    .send{border:1px solid #0a4b8e;border-radius:7px;color:#fff;font-weight:bold;background:linear-gradient(#68b5f1,#0b69c4 60%,#07509a);cursor:pointer}
+    .send:disabled{opacity:.5;cursor:default}
+    .toast{position:fixed;right:24px;bottom:24px;display:none;max-width:330px;padding:13px 16px;border:1px solid #245c94;border-radius:8px;background:linear-gradient(#fff,#ddecfa);box-shadow:0 8px 24px #174b8666;z-index:10}
+    @media(max-width:700px){
+      .app{width:100vw;height:100vh;height:100dvh;margin:0;border-radius:0}
+      .layout{grid-template-columns:175px minmax(0,1fr)}
+      .msg{max-width:90%}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="title"><span class="orb"></span><strong>RetroTalk 2000</strong><span>• conversaciones privadas</span></header>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="profile">
+          <div class="avatar">☺</div><b id="myName">Conectando…</b>
+          <div class="online">● Disponible</div><div class="small">Chat interno</div>
+          <div style="clear:both"></div>
+        </div>
+        <div class="contacts-title">Contactos</div>
+        <div id="contacts" class="contacts"></div>
+      </aside>
+      <main class="chat">
+        <div class="chat-head"><b id="chatName">Ningún contacto seleccionado</b><div id="chatStatus" class="small">Elige una persona de la lista</div></div>
+        <div id="messages" class="messages"><div class="empty">Selecciona un contacto para iniciar una conversación privada.</div></div>
+        <div class="composer">
+          <textarea id="messageBox" disabled maxlength="1000" placeholder="Intro envía · Shift+Intro crea una línea"></textarea>
+          <button id="sendButton" class="send" disabled>Enviar</button>
+        </div>
+      </main>
+    </div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const BASE_TITLE = 'RetroTalk 2000';
+    const state = {
+      me: null, contacts: [], selected: null,
+      cursor: 0,            // última fila de la hoja recibida para el chat abierto
+      loaded: false,        // ¿ya llegó la carga inicial del chat abierto?
+      seen: new Set(),
+      gen: 0,               // cambia al cambiar de contacto: descarta respuestas antiguas
+      busy: false, again: false, failures: 0, timer: null,
+      incoming: {}, readRow: {}, notified: {}, firstSync: true,
+      lastContactsHtml: '', toastTimer: null, audio: null
+    };
+    const el = id => document.getElementById(id);
+    const api = (name, ...args) => new Promise((resolve, reject) =>
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](...args));
+    const escapeHtml = v => String(v).replace(/[&<>"']/g, ch =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+
+    /* ---------- Sonido (un único AudioContext reutilizado) ---------- */
+    function tone(freq, duration, volume = .04) {
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!state.audio) state.audio = new Ctx();
+        const ctx = state.audio;
+        if (ctx.state === 'suspended') ctx.resume();
+        const osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.value = volume;
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime + duration / 1000);
+        osc.stop(ctx.currentTime + duration / 1000);
+      } catch (_) {}
+    }
+    const sendSound = () => { tone(660, 90); setTimeout(() => tone(880, 110), 80); };
+    const receiveSound = () => { tone(880, 100); setTimeout(() => tone(660, 130), 100); };
+    document.addEventListener('click', () => { if (state.audio && state.audio.state === 'suspended') state.audio.resume(); });
+
+    function showError(error) {
+      const t = el('toast');
+      t.textContent = (error && error.message) || String(error);
+      t.style.display = 'block';
+      clearTimeout(state.toastTimer);
+      state.toastTimer = setTimeout(() => t.style.display = 'none', 4000);
+    }
+
+    /* ---------- Contactos ---------- */
+    const unreadOf = c => {
+      if (state.selected && state.selected.email === c.email) return false;
+      return (state.incoming[c.email] || 0) > (state.readRow[c.email] || 0);
+    };
+
+    function renderContacts() {
+      const html = state.contacts.length
+        ? state.contacts.map(c => {
+            const active = state.selected && state.selected.email === c.email;
+            const unread = unreadOf(c);
+            return `<button type="button" class="contact ${active ? 'active' : ''} ${unread ? 'unread' : ''}" data-email="${escapeHtml(c.email)}">` +
+              `<i class="dot ${c.online ? 'on' : ''}"></i><span class="name">${escapeHtml(c.nombre)}</span>` +
+              (unread ? '<span class="badge">●</span>' : '') + `</button>`;
+          }).join('')
+        : '<div class="empty">Nadie más ha abierto la aplicación todavía.</div>';
+      if (html !== state.lastContactsHtml) {          // no repintar si no hay cambios
+        const box = el('contacts'), top = box.scrollTop;
+        box.innerHTML = html;
+        box.scrollTop = top;
+        state.lastContactsHtml = html;
+      }
+      const total = state.contacts.filter(unreadOf).length;
+      document.title = total ? `(${total}) ${BASE_TITLE}` : BASE_TITLE;
+    }
+
+    function updateHeader() {
+      if (!state.selected) return;
+      el('chatName').textContent = state.selected.nombre;
+      el('chatStatus').textContent = state.selected.online ? '● Disponible' : '○ Desconectado';
+    }
+
+    function selectContact(email) {
+      const contact = state.contacts.find(c => c.email === email);
+      if (!contact) return;
+      state.gen++;
+      state.selected = contact;
+      state.cursor = 0;
+      state.loaded = false;
+      state.seen.clear();
+      state.readRow[email] = state.incoming[email] || 0;
+      state.notified[email] = state.readRow[email];
+      updateHeader();
+      el('messageBox').disabled = false;
+      el('sendButton').disabled = false;
+      el('messages').innerHTML = '<div class="empty">Cargando conversación…</div>';
+      renderContacts();
+      tick();
+      el('messageBox').focus();
+    }
+
+    /* ---------- Mensajes ---------- */
+    function renderMessage(message) {
+      if (state.seen.has(message.id)) return false;
+      state.seen.add(message.id);
+      const box = el('messages');
+      const placeholder = box.querySelector('.empty');
+      if (placeholder) box.innerHTML = '';
+      const mine = message.emisorEmail === state.me.email;
+      const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      const item = document.createElement('div');
+      item.className = 'msg ' + (mine ? 'mine' : '');
+      item.innerHTML =
+        `<div class="meta">${escapeHtml(message.emisorNombre)} · ${new Date(message.fecha).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>` +
+        `<div class="bubble">${escapeHtml(message.mensaje).replace(/\n/g, '<br>')}</div>`;
+      box.appendChild(item);
+      if (mine || nearBottom || !state.loaded) requestAnimationFrame(() => box.scrollTop = box.scrollHeight);
+      return true;
+    }
+
+    /* ---------- Sincronización (un único bucle, sin solapamientos) ---------- */
+    function applySync(data, gen) {
+      // Contactos
+      state.contacts = data.contactos;
+      state.incoming = data.incoming || {};
+      if (state.selected) {
+        const fresh = state.contacts.find(c => c.email === state.selected.email);
+        if (fresh) { state.selected = fresh; updateHeader(); }
+      }
+
+      // Primera sincronización: lo que ya existía no se marca como "no leído"
+      if (state.firstSync) {
+        Object.keys(state.incoming).forEach(e => { state.readRow[e] = state.incoming[e]; state.notified[e] = state.incoming[e]; });
+        state.firstSync = false;
+      }
+
+      // Mensajes del chat abierto (solo si no se cambió de contacto mientras se esperaba)
+      let sound = false;
+      if (gen === state.gen && state.selected) {
+        const initial = !state.loaded;
+        data.mensajes.forEach(m => {
+          const isNew = renderMessage(m);
+          if (m.fila > state.cursor) state.cursor = m.fila;
+          if (isNew && !initial && m.emisorEmail !== state.me.email) sound = true;
+        });
+        if (initial) {
+          state.loaded = true;
+          if (!data.mensajes.length) el('messages').innerHTML = '<div class="empty">No hay mensajes todavía. Escribe el primero.</div>';
+        }
+        const e = state.selected.email;
+        if ((state.incoming[e] || 0) > (state.readRow[e] || 0)) state.readRow[e] = state.incoming[e];
+        state.notified[e] = Math.max(state.notified[e] || 0, state.incoming[e] || 0);
+      }
+
+      // Aviso sonoro de mensajes en otros chats
+      Object.keys(state.incoming).forEach(e => {
+        if (state.selected && state.selected.email === e) return;
+        if (state.incoming[e] > (state.notified[e] || 0)) { state.notified[e] = state.incoming[e]; sound = true; }
+      });
+      if (sound) receiveSound();
+      renderContacts();
+    }
+
+    async function tick() {
+      clearTimeout(state.timer);
+      if (state.busy) { state.again = true; return; }
+      state.busy = true;
+      const gen = state.gen;
+      const contact = state.selected;
+      try {
+        const data = await api('sync', contact ? contact.email : '', contact ? state.cursor : 0);
+        state.failures = 0;
+        applySync(data, gen);
+      } catch (error) {
+        state.failures++;
+        if (state.failures === 1 || state.failures % 10 === 0) showError(error);
+      } finally {
+        state.busy = false;
+        const base = document.hidden ? 10000 : 3000;
+        const delay = state.again ? 0 : (state.failures ? Math.min(30000, base * 2) : base);
+        state.again = false;
+        state.timer = setTimeout(tick, delay);
+      }
+    }
+
+    /* ---------- Enviar ---------- */
+    async function send() {
+      const box = el('messageBox');
+      const text = box.value.trim();
+      const contact = state.selected;
+      if (!contact || !text) return;
+      el('sendButton').disabled = true;
+      try {
+        const item = await api('sendMessage', contact.email, text);
+        box.value = '';
+        // Se pinta solo si seguimos en el mismo chat. NO se avanza el cursor:
+        // así no se pueden saltar mensajes entrantes escritos justo antes que el nuestro.
+        if (state.selected && state.selected.email === contact.email) renderMessage(item);
+        sendSound();
+      } catch (error) {
+        showError(error);
+      } finally {
+        el('sendButton').disabled = !state.selected;
+        box.focus();
+      }
+    }
+
+    el('contacts').addEventListener('click', event => {
+      const button = event.target.closest('.contact');
+      if (button) selectContact(button.dataset.email);
+    });
+    el('sendButton').addEventListener('click', send);
+    el('messageBox').addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); send(); }
+    });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+
+    async function start() {
+      try {
+        const data = await api('bootstrap');
+        state.me = data.me;
+        state.contacts = data.contactos;
+        el('myName').textContent = data.me.nombre;
+        renderContacts();
+        tick();
+      } catch (error) {
+        el('myName').textContent = 'Sin conexión';
+        showError(error);
+      }
+    }
+    start();
+  </script>
+</body>
+</html>
