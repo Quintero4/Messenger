@@ -225,19 +225,20 @@ function mailboxRead_(cache, email) {
 /** Deposita el mensaje en el buzón del receptor y "despierta" su petición en espera. */
 function pushMailbox_(to, item) {
   const cache = CacheService.getScriptCache();
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const cutoff = Date.now() - APP.MAILBOX_MS;
-    let arr = mailboxRead_(cache, to).filter(m => m.id !== item.id && new Date(m.fecha).getTime() > cutoff);
-    const prev = arr.length ? Number(arr[arr.length - 1].seq) : 0;
-    item.seq = Math.max(Date.now() * 1000 + Math.floor(Math.random() * 1000), prev + 1);
-    arr.push(item);
-    let json = JSON.stringify(arr);
-    while ((arr.length > 40 || json.length > 30000) && arr.length > 1) { arr.shift(); json = JSON.stringify(arr); }
-    cache.put('mbox_' + to, json, 21600);
-    cache.put('seq_' + to, String(item.seq), 21600);
-    // Verificación (sin bloqueo): si otro envío simultáneo pisó el buzón, se reintenta
-    if (mailboxRead_(cache, to).some(m => m.id === item.id)) return;
-  }
+  const cutoff = Date.now() - APP.MAILBOX_MS;
+  let arr = mailboxRead_(cache, to).filter(m => m.id !== item.id && new Date(m.fecha).getTime() > cutoff);
+  const prev = arr.length ? Number(arr[arr.length - 1].seq) : 0;
+  item.seq = Math.max(Date.now() * 1000 + Math.floor(Math.random() * 1000), prev + 1);
+  arr.push(item);
+  let json = JSON.stringify(arr);
+  while ((arr.length > 40 || json.length > 30000) && arr.length > 1) { arr.shift(); json = JSON.stringify(arr); }
+
+  // Notificación instantánea atómica en caché
+  cache.putAll({
+    ['mbox_' + to]: json,
+    ['seq_' + to]: String(item.seq),
+    'presence': String(Date.now())
+  }, 21600);
 }
 
 /* ---------- API pública (google.script.run) ---------- */
@@ -287,14 +288,13 @@ function sync(contactEmail, afterRow, opts) {
   };
   const changed = s => s.seq !== clientSeq || s.pres !== clientPres;
 
-  let st = snapshot();
+let st = snapshot();
   if (waitMs > 0 && !changed(st) && !st.stale) {
     const end = Date.now() + waitMs;
     while (Date.now() < end) {
       Utilities.sleep(APP.POLL_SLEEP_MS);
       st = snapshot();
       if (st.stale || changed(st)) break;
-      if (!passive && !st.touch) touchUser_(me);
     }
   }
 
@@ -383,11 +383,8 @@ function persist_(item) {
   lock.waitLock(10000);
   try {
     const sheet = sheet_(APP.MESSAGES_SHEET);
-    const row = sheet.getLastRow() + 1;
-    const range = sheet.getRange(row, 1, 1, 7);
-    range.setNumberFormats([['@', 'yyyy-mm-dd hh:mm:ss.000', '@', '@', '@', '@', '@']]);
-    range.setValues([[item.id, new Date(item.fecha), item.emisorEmail, item.emisorNombre, item.receptorEmail, item.mensaje, item.tipo]]);
-    item.fila = row;
+    sheet.appendRow([item.id, new Date(item.fecha), item.emisorEmail, item.emisorNombre, item.receptorEmail, item.mensaje, item.tipo]);
+    item.fila = sheet.getLastRow();
   } finally {
     lock.releaseLock();
   }
