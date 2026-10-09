@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{font:13px Tahoma,Verdana,sans-serif;background:radial-gradient(circle at 30% 10%,#fff,#dbeeff 38%,#91bbe4);color:#123;overflow:hidden}
+    .app{width:min(1050px,96vw);height:min(760px,94vh);margin:3vh auto;border:1px solid #174b86;border-radius:14px;overflow:hidden;box-shadow:0 18px 55px #1c4e8066;background:#f7fbff;display:flex;flex-direction:column}
+    .app.shake{animation:shake .75s linear}
+    @keyframes shake{
+      0%,100%{transform:translate(0,0)}
+      8%{transform:translate(-14px,-6px)}16%{transform:translate(14px,6px)}24%{transform:translate(-12px,5px)}
+      32%{transform:translate(12px,-5px)}40%{transform:translate(-10px,-4px)}48%{transform:translate(10px,4px)}
+      56%{transform:translate(-8px,3px)}64%{transform:translate(8px,-3px)}72%{transform:translate(-5px,2px)}
+      80%{transform:translate(5px,-2px)}90%{transform:translate(-2px,1px)}
+    }
+    .title{flex:0 0 48px;padding:7px 12px;color:#fff;background:linear-gradient(#4aa2ed,#0a61b8 55%,#06498e);display:flex;align-items:center;gap:10px}
+    .orb{width:30px;height:30px;border-radius:50%;background:linear-gradient(145deg,#b9ff91,#49a61e);border:2px solid #fff}
+    .layout{flex:1;min-height:0;display:grid;grid-template-columns:240px minmax(0,1fr)}
+    .sidebar{min-height:0;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #6c9fd5;background:linear-gradient(90deg,#eef7ff,#d9ecff)}
+    .profile{flex:0 0 auto;padding:14px 12px;border-bottom:1px solid #94b8dd}
+    .avatar{width:48px;height:48px;border:3px solid #fff;outline:1px solid #85a9cd;border-radius:8px;background:linear-gradient(135deg,#94cfff,#2c6cb3);display:grid;place-items:center;color:#fff;font-size:25px;float:left;margin-right:10px}
+    .small{font-size:11px;color:#59728c}
+    .role-admin{color:#9a5b00;font-weight:bold}
+    .role-ro{color:#59728c;font-weight:bold}
+    .composer.ro{background:linear-gradient(#eef1f4,#dde3ea)}
+    .composer.ro textarea{background:#f3f5f7;cursor:not-allowed}
+    .status-select{width:100%;margin-top:10px;padding:5px 6px;border:1px solid #7ea6cf;border-radius:6px;background:linear-gradient(#fff,#e3effa);font:13px Tahoma,Verdana,sans-serif;color:#123;cursor:pointer}
+    .sound-warn{display:none;margin-top:8px;padding:6px 8px;border:1px solid #e0a84c;background:#fff7e6;border-radius:6px;font-size:12px;text-align:center;cursor:pointer;color:#7a4a00}
+    .sound-tools{display:flex;gap:6px;margin-top:8px}
+    .sound-tools button{flex:1;padding:4px 2px;font:11px Tahoma,Verdana,sans-serif;border:1px solid #7ea6cf;border-radius:6px;background:linear-gradient(#fff,#e3effa);cursor:pointer;color:#123}
+    .contacts-title{flex:0 0 auto;padding:12px 10px 6px;font-weight:bold;color:#174b86}
+    .contacts{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;padding-bottom:8px}
+    .contact{width:100%;padding:10px;border:0;border-top:1px solid transparent;border-bottom:1px solid transparent;background:transparent;display:flex;gap:8px;align-items:center;text-align:left;font:13px Tahoma,Verdana,sans-serif;color:#123;cursor:pointer}
+    .contact .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .contact .st{font-size:11px;color:#6b8299}
+    .contact:hover,.contact.active{background:#fff;border-color:#9fc2e5}
+    .contact:focus-visible{outline:2px solid #1266c9;outline-offset:-2px}
+    .contact.unread .name{font-weight:bold}
+    .badge{flex:0 0 auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e03a1e;color:#fff;font-size:11px;font-weight:bold;display:grid;place-items:center}
+    .dot{flex:0 0 11px;width:11px;height:11px;border-radius:50%;background:#aaa;border:1px solid #fff;box-shadow:0 0 0 1px #777}
+    .dot.on{background:#59ca25}.dot.llamada{background:#e5372b}.dot.cafe{background:#f0a020}
+    .chat{position:relative;min-width:0;min-height:0;display:grid;grid-template-rows:66px minmax(0,1fr) 128px;overflow:hidden;background:#fff}
+    .chat-head{padding:10px 14px;background:linear-gradient(#fff,#e6f2fc);border-bottom:1px solid #8cb4dd}
+    .chat-head b{font-size:16px;color:#174b86}
+    .messages{min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;overscroll-behavior:contain;padding:15px;background:linear-gradient(#fff,#f2f8fe)}
+    .empty{min-height:100%;display:grid;place-items:center;text-align:center;color:#6b8299;padding:8px}
+    .msg{max-width:76%;margin-bottom:12px;overflow-wrap:anywhere}
+    .msg.mine{margin-left:auto;text-align:right}
+    .msg.pending{opacity:.55}
+    .meta{font-size:11px;color:#577795;margin-bottom:3px}
+    .bubble{display:inline-block;text-align:left;padding:9px 12px;border:1px solid #8eb8de;border-radius:5px 13px 13px;background:linear-gradient(#fff,#e8f3fc);font-size:14px}
+    .mine .bubble{border-radius:13px 5px 13px 13px;background:linear-gradient(#f5ffe9,#d9f4bd);border-color:#9abf72}
+    .sysmsg{text-align:center;margin:12px 0;font-size:12px;color:#9a5b00;font-weight:bold}
+    .sysmsg span{display:inline-block;padding:4px 12px;border:1px dashed #e0a84c;border-radius:12px;background:#fff7e6}
+    .composer{padding:8px 9px;background:linear-gradient(#e8f3fc,#cddff1);border-top:1px solid #87acd0;display:grid;grid-template-columns:minmax(0,1fr) 94px;grid-template-rows:30px minmax(0,1fr);gap:6px 8px}
+    .toolbar{grid-column:1/-1;display:flex;gap:6px;align-items:center}
+    .tool{height:28px;padding:0 10px;border:1px solid #7ea6cf;border-radius:6px;background:linear-gradient(#fff,#dcebf8);cursor:pointer;font:13px Tahoma,Verdana,sans-serif;color:#123}
+    .tool:hover:not(:disabled){background:linear-gradient(#fff,#cfe4f7)}
+    .tool:disabled{opacity:.5;cursor:default}
+    .composer textarea{grid-column:1;grid-row:2;min-width:0;resize:none;border:1px solid #6e9bc8;border-radius:5px;padding:9px;font:14px Tahoma,Verdana,sans-serif}
+    .send{grid-column:2;grid-row:2;border:1px solid #0a4b8e;border-radius:7px;color:#fff;font-weight:bold;background:linear-gradient(#68b5f1,#0b69c4 60%,#07509a);cursor:pointer}
+    .send:disabled{opacity:.5;cursor:default}
+    .emoji-panel{position:absolute;left:9px;bottom:120px;width:min(340px,calc(100% - 18px));display:none;border:1px solid #6e9bc8;border-radius:8px;background:#fff;box-shadow:0 8px 24px #174b8666;z-index:5;overflow:hidden}
+    .emoji-panel.open{display:block}
+    .emoji-tabs{display:flex;background:linear-gradient(#f4faff,#d9ecff);border-bottom:1px solid #9fc2e5}
+    .emoji-tabs button{flex:1;padding:6px 0;border:0;background:transparent;font-size:18px;cursor:pointer}
+    .emoji-tabs button.active{background:#fff;box-shadow:inset 0 -3px #1266c9}
+    .emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);max-height:190px;overflow-y:auto;padding:6px}
+    .emoji-grid button{border:0;background:transparent;font-size:22px;line-height:1;padding:5px 0;border-radius:6px;cursor:pointer}
+    .emoji-grid button:hover{background:#e3effa}
+    .toast{position:fixed;right:24px;bottom:24px;display:none;max-width:330px;padding:13px 16px;border:1px solid #245c94;border-radius:8px;background:linear-gradient(#fff,#ddecfa);box-shadow:0 8px 24px #174b8666;z-index:10}
+    @media(max-width:700px){
+      .app{width:100vw;height:100vh;height:100dvh;margin:0;border-radius:0}
+      .layout{grid-template-columns:175px minmax(0,1fr)}
+      .msg{max-width:90%}
+      .contact .st{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="title"><span class="orb"></span><strong>RetroTalk 2000</strong><span>• conversaciones privadas</span></header>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="profile">
+          <div class="avatar">☺</div><b id="myName">Conectando…</b>
+          <div class="small" id="roleLabel">Chat interno</div>
+          <div style="clear:both"></div>
+          <select id="statusSelect" class="status-select" title="Cambiar mi estado" disabled>
+            <option value="disponible">🟢 Disponible</option>
+            <option value="llamada">🔴 En una llamada</option>
+            <option value="cafe">🟠 En un café</option>
+            <option value="desconectado">⚫ Desconectado</option>
+          </select>
+          <div id="soundWarn" class="sound-warn">🔇 Pulsa aquí para activar el sonido</div>
+          <div class="sound-tools">
+            <button type="button" id="testRecv">🔔 Probar aviso</button>
+            <button type="button" id="testBuzz">📳 Probar zumbido</button>
+          </div>
+        </div>
+        <div class="contacts-title">Contactos</div>
+        <div id="contacts" class="contacts"></div>
+      </aside>
+      <main class="chat">
+        <div class="chat-head"><b id="chatName">Ningún contacto seleccionado</b><div id="chatStatus" class="small">Elige una persona de la lista</div></div>
+        <div id="messages" class="messages"><div class="empty">Selecciona un contacto para iniciar una conversación privada.</div></div>
+        <div id="emojiPanel" class="emoji-panel"><div id="emojiTabs" class="emoji-tabs"></div><div id="emojiGrid" class="emoji-grid"></div></div>
+        <div class="composer">
+          <div class="toolbar">
+            <button type="button" id="emojiButton" class="tool" disabled title="Emoticonos">😊 Emojis</button>
+            <button type="button" id="nudgeButton" class="tool" disabled title="Enviar un zumbido">📳 Zumbido</button>
+          </div>
+          <textarea id="messageBox" disabled maxlength="1000" placeholder="Intro envía · Shift+Intro crea una línea"></textarea>
+          <button id="sendButton" class="send" disabled>Enviar</button>
+        </div>
+      </main>
+    </div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const WAIT_MS = 8000; // Reduce ventanas muertas de reconexión
+    const AWAY_MS = 120000;     // tiempo con la página oculta/equipo bloqueado antes de aparecer "desconectado"
+    const NUDGE_COOLDOWN = 10000;
+    const STATUS = {
+      disponible:   {t: 'Disponible',      c: 'on',       i: '●'},
+      llamada:      {t: 'En una llamada',  c: 'llamada',  i: '●'},
+      cafe:         {t: 'En un café',      c: 'cafe',     i: '●'},
+      desconectado: {t: 'Desconectado',    c: '',         i: '○'}
+    };
+    const EMOJI_TABS = [
+      {icon: '😀', list: '😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 😐 😑 😶 😏 😒 🙄 😬 🤥 😔 😪 😴 😷 🤒 🤕 🤢 🤮 🥵 🥶 🥴 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 😮 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 💩 🤡 👻 👽 🤖'},
+      {icon: '👍', list: '👍 👎 👌 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ ✋ 🤚 🖖 👋 🤝 🙏 👏 🙌 👐 🤲 💪 ✍️ 💅 🙋 🤷 🤦 🙈 🙉 🙊'},
+      {icon: '❤️', list: '❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💋 💯 💢 💥 💫 💦 💤 🔥 ⭐ 🌟 ✨ ⚡ 🎉 🎊 🎈 🎁'},
+      {icon: '🐶', list: '🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🐔 🐧 🐦 🦆 🦉 🐴 🦄 🐝 🦋 🐌 🐢 🐍 🐙 🐬 🐳 🌸 🌹 🌻 🌲 🌴 🌞 🌙 ⛅ 🌈'},
+      {icon: '🍕', list: '🍏 🍎 🍌 🍉 🍇 🍓 🍒 🍑 🍍 🥑 🍅 🥕 🌽 🍞 🧀 🍔 🍟 🍕 🌭 🌮 🍣 🍜 🍝 🍦 🍩 🍪 🎂 🍫 🍿 ☕ 🍵 🍺 🍻 🥂 🍷 🍹'},
+      {icon: '⚽', list: '⚽ 🏀 🏈 ⚾ 🎾 🏐 🎱 🏓 🥊 🎮 🎲 🎯 🎸 🎹 🎧 🎤 🎬 📷 💻 📱 ☎️ 🔔 💡 📚 ✏️ 📌 🔑 🔒 🚗 🚲 ✈️ 🚀 🏠 💰 ⏰'}
+    ];
+    const EMOTICONS = {':)':'🙂',':-)':'🙂',':D':'😃',':-D':'😃',';)':'😉',';-)':'😉',':(':'🙁',':-(':'🙁',':P':'😛',':-P':'😛',':O':'😮',':-O':'😮','(L)':'❤️','(Y)':'👍','(N)':'👎'};
+
+    const state = {
+      me: null, contacts: [], selected: null, myStatus: 'disponible',
+      cursor: 0, loaded: false, seen: new Set(), gen: 0, pending: [],
+      loopId: '', failures: 0,
+      seq: '0', itemSeq: 0, pres: '', baseline: true,   // canal rápido (buzón en caché)
+      unread: new Set(), heard: new Set(),
+      away: false, hideTimer: null, nudgeLock: false, emojiTab: 0,
+      lastContactsHtml: '', toastTimer: null, audioOk: false
+    };
+    const el = id => document.getElementById(id);
+    const api = (name, ...args) => new Promise((resolve, reject) =>
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](...args));
+    const escapeHtml = v => String(v).replace(/[&<>"']/g, ch =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    /* ================= SONIDO =================
+       Los sonidos se generan aquí mismo como WAV (sin archivos externos) y se reproducen con <audio>,
+       que es lo más fiable. Si el navegador lo rechaza, se usa WebAudio como alternativa. */
+    function wavUri(fn, seconds) {
+      const rate = 22050, n = Math.floor(seconds * rate);
+      const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+      const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+      w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+      v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+      w(36, 'data'); v.setUint32(40, n * 2, true);
+      for (let i = 0; i < n; i++) {
+        const s = Math.max(-1, Math.min(1, fn(i / rate)));
+        v.setInt16(44 + i * 2, s * 32767, true);
+      }
+      const bytes = new Uint8Array(buf);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      return 'data:audio/wav;base64,' + btoa(bin);
+    }
+    const TAU = Math.PI * 2;
+    const SOUND_SRC = {
+      // Aviso de mensaje: dos notas tipo campanilla
+      recv: wavUri(t => {
+        if (t > .6) return 0;
+        const first = t < .2, f = first ? 880 : 1318, tt = first ? t : t - .2;
+        const env = Math.exp(-tt * 8) * Math.min(1, tt / .004);
+        return .85 * env * (Math.sin(TAU * f * t) * .8 + Math.sin(TAU * f * 2 * t) * .2);
+      }, .6),
+      // Enviar: blip corto
+      send: wavUri(t => {
+        if (t > .25) return 0;
+        const first = t < .09, f = first ? 660 : 990, tt = first ? t : t - .09;
+        return .45 * Math.exp(-tt * 16) * Math.min(1, tt / .003) * Math.sin(TAU * f * t);
+      }, .25),
+      // Zumbido: vibración rápida y áspera (200 Hz + armónicos, troceada a 24 Hz), audible en altavoces pequeños
+      buzz: wavUri(t => {
+        const len = .9;
+        if (t > len) return 0;
+        const gate = Math.sin(TAU * 24 * t) > 0 ? 1 : .2;
+        const carrier = Math.sign(Math.sin(TAU * 200 * t)) * .55 + Math.sin(TAU * 400 * t) * .3 + Math.sin(TAU * 600 * t) * .15;
+        const env = Math.min(1, t / .01) * Math.min(1, (len - t) / .12);
+        return .95 * gate * carrier * env;
+      }, .9)
+    };
+    const SILENT = wavUri(() => 0, .05);
+
+    let wctx = null;
+    function fallbackTone(name) {
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!wctx) wctx = new Ctx();
+        if (wctx.state === 'suspended') wctx.resume();
+        const beep = (f, d, vol, type, at) => {
+          const t = wctx.currentTime + at, o = wctx.createOscillator(), g = wctx.createGain();
+          o.type = type; o.frequency.value = f;
+          g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+          o.connect(g); g.connect(wctx.destination); o.start(t); o.stop(t + d + .02);
+        };
+        if (name === 'buzz') for (let i = 0; i < 14; i++) beep(i % 2 ? 240 : 320, .05, .35, 'square', i * .055);
+        else if (name === 'recv') { beep(880, .2, .4, 'sine', 0); beep(1318, .3, .4, 'sine', .2); }
+        else beep(700, .12, .25, 'sine', 0);
+      } catch (_) {}
+    }
+
+    function updateSoundWarn() { el('soundWarn').style.display = state.audioOk ? 'none' : 'block'; }
+
+    function playSound(name) {
+      const src = SOUND_SRC[name];
+      if (!src) return;
+      try {
+        const a = new Audio(src);
+        a.volume = 1;
+        const p = a.play();
+        if (p && p.catch) p.catch(() => { fallbackTone(name); state.audioOk = false; updateSoundWarn(); });
+        else state.audioOk = true;
+      } catch (_) { fallbackTone(name); }
+    }
+
+    // Cualquier gesto del usuario desbloquea el audio del navegador
+    function unlockAudio() {
+      if (state.audioOk) return;
+      try {
+        const a = new Audio(SILENT);
+        const p = a.play();
+        if (p && p.then) p.then(() => { state.audioOk = true; updateSoundWarn(); }).catch(() => {});
+        else { state.audioOk = true; updateSoundWarn(); }
+      } catch (_) {}
+      try { if (wctx && wctx.state === 'suspended') wctx.resume(); } catch (_) {}
+    }
+    ['pointerdown', 'click', 'keydown', 'touchstart'].forEach(ev =>
+      document.addEventListener(ev, unlockAudio, {passive: true, capture: true}));
+    el('soundWarn').addEventListener('click', () => { unlockAudio(); playSound('recv'); });
+    el('testRecv').addEventListener('click', () => playSound('recv'));
+    el('testBuzz').addEventListener('click', () => buzzEffect());
+
+    function buzzEffect() {
+      playSound('buzz');
+      const app = el('app');
+      app.classList.remove('shake'); void app.offsetWidth; app.classList.add('shake');
+      setTimeout(() => app.classList.remove('shake'), 800);
+    }
+
+    function showError(error) {
+      const t = el('toast');
+      t.textContent = (error && error.message) || String(error);
+      t.style.display = 'block';
+      clearTimeout(state.toastTimer);
+      state.toastTimer = setTimeout(() => t.style.display = 'none', 4000);
+    }
+
+    /* ================= ESTADO PROPIO ================= */
+    function setMyStatusUi(value) {
+      state.myStatus = value;
+      el('statusSelect').value = value;
+    }
+    el('statusSelect').addEventListener('change', async event => {
+      const value = event.target.value, previous = state.myStatus;
+      try { await api('setStatus', value); state.myStatus = value; }
+      catch (error) { event.target.value = previous; showError(error); }
+    });
+
+    /* ================= CONTACTOS ================= */
+    const statusOf = c => STATUS[c.estado] || STATUS.desconectado;
+
+    function renderContacts() {
+      const html = state.contacts.length
+        ? state.contacts.map(c => {
+            const active = state.selected && state.selected.email === c.email;
+            const unread = state.unread.has(c.email) && !active, st = statusOf(c);
+            return `<button type="button" class="contact ${active ? 'active' : ''} ${unread ? 'unread' : ''}" data-email="${escapeHtml(c.email)}" title="${st.t}">` +
+              `<i class="dot ${st.c}"></i><span class="name">${escapeHtml(c.nombre)}</span>` +
+              (c.admin ? '<span class="st" title="Administrador">⭐</span>' : '') +
+              (c.estado === 'llamada' || c.estado === 'cafe' ? `<span class="st">${c.estado === 'llamada' ? '📞' : '☕'}</span>` : '') +
+              (unread ? '<span class="badge">●</span>' : '') + `</button>`;
+          }).join('')
+        : '<div class="empty">Nadie más ha abierto la aplicación todavía.</div>';
+      if (html !== state.lastContactsHtml) {
+        const box = el('contacts'), top = box.scrollTop;
+        box.innerHTML = html;
+        box.scrollTop = top;
+        state.lastContactsHtml = html;
+      }
+    }
+
+    function updateHeader() {
+      if (!state.selected) return;
+      const st = statusOf(state.selected);
+      el('chatName').textContent = state.selected.nombre;
+      el('chatStatus').textContent = `${st.i} ${st.t}`;
+    }
+
+    // Solo los administradores pueden escribir; el resto es de solo lectura (el servidor también lo valida)
+    const isAdmin = () => !!(state.me && state.me.admin);
+    const canWrite = () => isAdmin() && !!state.selected;
+
+    function renderRole() {
+      if (!state.me) return;
+      const label = el('roleLabel');
+      if (isAdmin()) { label.textContent = '⭐ Administrador · lectura y escritura'; label.className = 'small role-admin'; }
+      else           { label.textContent = '👁️ Solo lectura';                         label.className = 'small role-ro'; }
+      el('messageBox').placeholder = isAdmin()
+        ? 'Intro envía · Shift+Intro crea una línea'
+        : 'Modo solo lectura: únicamente los administradores pueden escribir';
+      document.querySelector('.composer').classList.toggle('ro', !isAdmin());
+    }
+
+    function updateTools() {
+      const write = canWrite();
+      el('messageBox').disabled = !write;
+      el('sendButton').disabled = !write;
+      el('emojiButton').disabled = !write;
+      el('nudgeButton').disabled = !write || state.nudgeLock;
+    }
+
+    function selectContact(email) {
+      const contact = state.contacts.find(c => c.email === email);
+      if (!contact) return;
+      state.gen++;
+      state.selected = contact;
+      state.cursor = 0;
+      state.loaded = false;
+      state.seen.clear();
+      state.pending = [];
+      state.unread.delete(email);
+      closeEmoji();
+      updateHeader();
+      updateTools();
+      el('messages').innerHTML = '<div class="empty">Cargando conversación…</div>';
+      renderContacts();
+      startLoop();               // carga inmediata del historial del nuevo chat
+      el('messageBox').focus();
+    }
+
+    /* ================= MENSAJES ================= */
+    const timeLabel = d => new Date(d).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+
+    function bubbleHtml(name, date, text) {
+      return `<div class="meta">${escapeHtml(name)} · ${timeLabel(date)}</div>` +
+             `<div class="bubble">${escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
+    }
+
+    function scrollDown(force) {
+      const box = el('messages');
+      if (force) requestAnimationFrame(() => box.scrollTop = box.scrollHeight);
+    }
+
+    function renderMessage(message) {
+      if (state.seen.has(message.id)) return false;
+      const box = el('messages');
+      const mine = message.emisorEmail === state.me.email;
+
+      // Mensaje mío ya pintado como "pendiente": solo se confirma
+      if (mine && message.tipo !== 'zumbido') {
+        const i = state.pending.findIndex(p => !p.done && p.text === message.mensaje);
+        if (i >= 0) {
+          const p = state.pending.splice(i, 1)[0];
+          p.done = true;
+          p.el.classList.remove('pending');
+          state.seen.add(message.id);
+          return false;
+        }
+      }
+
+      state.seen.add(message.id);
+      if (box.querySelector('.empty')) box.innerHTML = '';
+      const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      const item = document.createElement('div');
+      if (message.tipo === 'zumbido') {
+        item.className = 'sysmsg';
+        item.innerHTML = '<span>📳 ' + (mine ? 'Has enviado un zumbido' : escapeHtml(message.emisorNombre) + ' te ha enviado un zumbido') + '</span>';
+      } else {
+        item.className = 'msg ' + (mine ? 'mine' : '');
+        item.innerHTML = bubbleHtml(message.emisorNombre, message.fecha, message.mensaje);
+      }
+      box.appendChild(item);
+      scrollDown(mine || nearBottom || !state.loaded);
+      return true;
+    }
+
+    /* ================= SINCRONIZACIÓN ================= */
+    function applySync(data, gen) {
+      state.seq = data.seq || '0';
+      if (data.pres !== undefined) state.pres = data.pres;
+      if (data.itemSeq > state.itemSeq) state.itemSeq = data.itemSeq;
+      let sound = false, buzz = false;
+
+      if (typeof data.admin === 'boolean' && state.me && data.admin !== state.me.admin) {
+        state.me.admin = data.admin;
+        renderRole();
+        updateTools();
+      }
+
+      if (data.contactos) {
+        state.contacts = data.contactos;
+        if (state.selected) {
+          const fresh = state.contacts.find(c => c.email === state.selected.email);
+          if (fresh) { state.selected = fresh; updateHeader(); }
+        }
+      }
+
+      // Historial / red de seguridad desde la hoja
+      if (data.mensajes && gen === state.gen && state.selected) {
+        const initial = !state.loaded;
+        data.mensajes.forEach(m => {
+          const isNew = renderMessage(m);
+          if (m.fila > state.cursor) state.cursor = m.fila;
+          if (isNew && !initial && m.tipo !== 'zumbido' && m.emisorEmail !== state.me.email && !state.heard.has(m.id)) {
+            state.heard.add(m.id); sound = true;
+          }
+        });
+        if (initial) {
+          state.loaded = true;
+          if (!el('messages').querySelector('.msg,.sysmsg'))
+            el('messages').innerHTML = '<div class="empty">' + (isAdmin() ? 'No hay mensajes todavía. Escribe el primero.' : 'No hay mensajes todavía.') + '</div>';
+        }
+      }
+
+      // Canal rápido: mensajes y zumbidos recién llegados (de cualquier contacto)
+      const baseline = state.baseline;
+      state.baseline = false;
+      (data.items || []).slice().sort((a, b) => a.seq - b.seq).forEach(m => {
+        if (state.heard.has(m.id)) return;
+        state.heard.add(m.id);
+        if (baseline) return;                       // lo anterior a abrir la app no suena
+        const isSel = state.selected && state.selected.email === m.emisorEmail;
+        if (m.tipo === 'zumbido') buzz = true; else sound = true;
+        if (isSel) { if (state.loaded) renderMessage(m); }
+        else state.unread.add(m.emisorEmail);
+      });
+      if (state.heard.size > 800) state.heard = new Set(Array.from(state.heard).slice(-300));
+
+      if (buzz) buzzEffect(); else if (sound) playSound('recv');
+      renderContacts();
+    }
+
+    function startLoop() {
+      state.loopId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      runLoop(state.loopId);     // el bucle anterior se descarta solo (el servidor lo corta en <1 s)
+    }
+
+    async function runLoop(id) {
+      let first = true;
+      while (id === state.loopId) {
+        const gen = state.gen, contact = state.selected;
+        try {
+          const data = await api('sync', contact ? contact.email : '', contact ? state.cursor : 0, {
+            wait: first ? 0 : WAIT_MS,
+            seq: state.seq,
+            itemSeq: state.itemSeq,
+            pres: state.pres,
+            passive: state.away,
+            loop: id,
+            first: first
+          });
+          if (id !== state.loopId) return;
+          state.failures = 0;
+          applySync(data, gen);
+          if (data.stale) { await sleep(3000); first = true; continue; }   // otra pestaña tomó el relevo
+          first = false;
+        } catch (error) {
+          if (id !== state.loopId) return;
+          state.failures++;
+          if (state.failures === 1 || state.failures % 10 === 0) showError(error);
+          await sleep(Math.min(15000, 1000 * state.failures));
+          first = true;
+        }
+      }
+    }
+
+    /* ================= AUSENTE ================= */
+    async function goAway() {
+      if (state.away || !state.me) return;
+      state.away = true;
+      startLoop();                       // bucle "pasivo": sigue avisando con sonido, pero apareces desconectado
+      try { await api('goOffline'); } catch (_) {}
+    }
+    function comeBack() {
+      state.away = false;
+      state.failures = 0;
+      startLoop();
+    }
+    document.addEventListener('visibilitychange', () => {
+      clearTimeout(state.hideTimer);
+      if (document.hidden) state.hideTimer = setTimeout(goAway, AWAY_MS);
+      else if (state.away) comeBack();
+    });
+    window.addEventListener('pagehide', () => { try { google.script.run.goOffline(); } catch (_) {} });
+
+    /* ================= EMOJIS ================= */
+    function insertAtCursor(text) {
+      const box = el('messageBox'), v = box.value;
+      const s = box.selectionStart == null ? v.length : box.selectionStart;
+      const e = box.selectionEnd == null ? s : box.selectionEnd;
+      if (v.length - (e - s) + text.length > box.maxLength) return;
+      box.value = v.slice(0, s) + text + v.slice(e);
+      const p = s + text.length;
+      box.setSelectionRange(p, p);
+      box.focus();
+    }
+    function renderEmoji() {
+      el('emojiTabs').innerHTML = EMOJI_TABS.map((t, i) =>
+        `<button type="button" data-tab="${i}" class="${i === state.emojiTab ? 'active' : ''}">${t.icon}</button>`).join('');
+      el('emojiGrid').innerHTML = EMOJI_TABS[state.emojiTab].list.split(' ')
+        .map(e => `<button type="button" data-emoji="${e}">${e}</button>`).join('');
+    }
+    function closeEmoji() { el('emojiPanel').classList.remove('open'); }
+    el('emojiButton').addEventListener('click', event => {
+      event.stopPropagation();
+      if (el('emojiPanel').classList.toggle('open')) renderEmoji();
+    });
+    el('emojiPanel').addEventListener('click', event => {
+      event.stopPropagation();
+      const tab = event.target.closest('[data-tab]'), emoji = event.target.closest('[data-emoji]');
+      if (tab) { state.emojiTab = Number(tab.dataset.tab); renderEmoji(); }
+      if (emoji) insertAtCursor(emoji.dataset.emoji);
+    });
+    document.addEventListener('click', closeEmoji);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeEmoji(); });
+
+    /* ================= ENVIAR ================= */
+    function emoticons(text) {
+      return text.replace(/(^|\s)(:-?[)(DPO]|;-?\)|\(L\)|\(Y\)|\(N\))(?=\s|$)/g, (m, sp, code) => sp + (EMOTICONS[code] || code));
+    }
+
+    function send() {
+      const box = el('messageBox');
+      const text = emoticons(box.value.trim());
+      const contact = state.selected;
+      if (!contact || !text) return;
+      if (!isAdmin()) { showError(new Error('Tu cuenta es de solo lectura: únicamente los administradores pueden escribir.')); return; }
+      box.value = '';
+      box.focus();
+      playSound('send');
+
+      // Se muestra al instante y se confirma cuando responde el servidor
+      const area = el('messages');
+      if (area.querySelector('.empty')) area.innerHTML = '';
+      const node = document.createElement('div');
+      node.className = 'msg mine pending';
+      node.innerHTML = bubbleHtml(state.me.nombre, Date.now(), text);
+      area.appendChild(node);
+      scrollDown(true);
+      const p = {el: node, text: text, done: false};
+      state.pending.push(p);
+
+      api('sendMessage', contact.email, text).then(item => {
+        if (p.done) return;
+        p.done = true;
+        const i = state.pending.indexOf(p);
+        if (i >= 0) state.pending.splice(i, 1);
+        if (state.seen.has(item.id)) node.remove();
+        else { state.seen.add(item.id); node.classList.remove('pending'); }
+      }).catch(error => {
+        if (p.done) return;
+        p.done = true;
+        const i = state.pending.indexOf(p);
+        if (i >= 0) state.pending.splice(i, 1);
+        node.remove();
+        if (!box.value) box.value = text;
+        showError(error);
+      });
+    }
+
+    async function nudge() {
+      const contact = state.selected;
+      if (!contact || state.nudgeLock) return;
+      if (!isAdmin()) { showError(new Error('Tu cuenta es de solo lectura: únicamente los administradores pueden enviar zumbidos.')); return; }
+      state.nudgeLock = true;
+      updateTools();
+      buzzEffect();                                   // feedback inmediato en tu pantalla
+      try {
+        const item = await api('sendNudge', contact.email);
+        if (state.selected && state.selected.email === contact.email) renderMessage(item);
+      } catch (error) {
+        showError(error);
+      } finally {
+        setTimeout(() => { state.nudgeLock = false; updateTools(); }, NUDGE_COOLDOWN);
+      }
+    }
+
+    el('contacts').addEventListener('click', event => {
+      const button = event.target.closest('.contact');
+      if (button) selectContact(button.dataset.email);
+    });
+    el('sendButton').addEventListener('click', send);
+    el('nudgeButton').addEventListener('click', nudge);
+    el('messageBox').addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); send(); }
+    });
+
+    async function start() {
+      updateSoundWarn();
+      try {
+        const data = await api('bootstrap');
+        state.me = data.me;
+        state.contacts = data.contactos;
+        el('myName').textContent = data.me.nombre;
+        el('statusSelect').disabled = false;
+        setMyStatusUi(data.me.estado || 'disponible');
+        renderRole();
+        updateTools();
+        renderContacts();
+        startLoop();
+      } catch (error) {
+        el('myName').textContent = 'Sin conexión';
+        showError(error);
+      }
+    }
+    start();
+  </script>
+</body>
+</html>
